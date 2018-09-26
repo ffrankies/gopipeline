@@ -8,7 +8,9 @@ After reading all of [this](https://dave.cheney.net/2014/12/01/five-suggestions-
 
 At first, I figured the best way to organize would be to copy [what the devs of golang did](https://github.com/golang/tools). However, that repo is fundamentally different from ours. They were building a collection of tools - we're building just the one. So, the end result currently looks like this:
 
-The main gopipeline code goes into the root directory of the project. Master and Worker will be treated as subpackages, saved in the `$root/master/` and `$root/worker` directories.
+The main gopipeline code goes into the root directory of the project. Master and Worker will be treated as subpackages, saved in the `$root/master/` and `$root/worker` directories. All code that is used by both master and worker, or isn't directly related to either of them, should go in the `$root/internal/[internalpackage]` directory. Currently, I just have `$root/internal/common/`, and I doubt we'll need anything more than that. At least for the time being.
+
+(The packages in the `internal` directory can only be imported from within this library)
 
 ## Spec
 
