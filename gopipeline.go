@@ -1,3 +1,5 @@
+// The gopipeline package contains the logic for pipelining a Golang application through a list of compute nodes.
 package gopipeline
 
-var Thing = 6
+// AnyFunc is any function with any number of input parameters and a single return value
+type AnyFunc func(...interface{}) interface{}
