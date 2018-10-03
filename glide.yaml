@@ -1,0 +1,14 @@
+package: github.com/ffrankies/gopipeline
+homepage: https://github.com/ffrankies/gopipeline
+license: TBD
+owners:
+- name: Frank Wanye
+  email: N/A
+  homepage: N/A
+- name: Bipasha Banerjee
+  email: N/A
+  homepage: N/A
+import:
+- package: golang.org/x/crypto
+  subpackages:
+  - ssh
