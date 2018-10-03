@@ -7,9 +7,12 @@ import (
 	"github.com/ffrankies/gopipeline"
 )
 
-// Run executes the master process code on the given nodelist and list of functions that make up the pipelined module.
-// The module parts functions will be executed in the order in which they appear in the moduleParts slice.
-func Run(nodeListPath string, moduleParts []gopipeline.AnyFunc) {
+// Run executes the main logic of the "master" node.
+// This involves setting up the pipeline stages, and starting worker processes on each node in the pipeline.
+// The command is the command to be used to start the worker process.
+// The configPath is the path to the config file that contains the login information and node list.
+// The functionList is the list of functions to pipeline.
+func Run(command string, configPath string, functionList []gopipeline.AnyFunc) {
 	sshConnection := NewSSHConnection("rlogin.cs.vt.edu", "wanyef", 22)
 	defer sshConnection.Close()
 	out, err := sshConnection.RunCommand("ls")
@@ -19,7 +22,7 @@ func Run(nodeListPath string, moduleParts []gopipeline.AnyFunc) {
 	fmt.Println(out)
 	out, err = sshConnection.RunCommand("ps")
 	if err != nil {
-		panic("Failed to run ls: " + err.Error())
+		panic("Failed to run ps: " + err.Error())
 	}
 	fmt.Println(out)
 }
