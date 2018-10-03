@@ -21,17 +21,17 @@ type SSHConnection struct {
 
 // NewSSHConnection creates a new SSHConnection object
 func NewSSHConnection(address string, remoteUser string, port int) *SSHConnection {
-	SSHConnection := new(SSHConnection)
-	SSHConnection.Address = address
-	SSHConnection.User = remoteUser
+	sshConnection := new(SSHConnection)
+	sshConnection.Address = address
+	sshConnection.User = remoteUser
 	usr, err := user.Current()
 	if err != nil {
 		panic(err)
 	}
-	SSHConnection.PrivateKeyPath = usr.HomeDir + "/.ssh/id_rsa"
-	SSHConnection.Port = 22
-	SSHConnection.client = createClient(SSHConnection.User, SSHConnection.Address)
-	return SSHConnection
+	sshConnection.PrivateKeyPath = usr.HomeDir + "/.ssh/id_rsa"
+	sshConnection.Port = 22
+	sshConnection.client = createClient(sshConnection.User, sshConnection.Address)
+	return sshConnection
 }
 
 // RunCommand a single command through the SSH Connection
