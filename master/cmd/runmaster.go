@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	master.MasterRun("README.md", make([]gopipeline.AnyFunc, 0))
+	master.Run("README.md", make([]gopipeline.AnyFunc, 0))
 }
