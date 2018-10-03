@@ -7,12 +7,17 @@ import (
 	"github.com/ffrankies/gopipeline"
 )
 
+// The list of pipeline stages
+var pipelineStageList []PipelineStage
+
 // Run executes the main logic of the "master" node.
 // This involves setting up the pipeline stages, and starting worker processes on each node in the pipeline.
 // The command is the command to be used to start the worker process.
 // The configPath is the path to the config file that contains the login information and node list.
 // The functionList is the list of functions to pipeline.
 func Run(command string, configPath string, functionList []gopipeline.AnyFunc) {
+	stage := NewPipelineStage("127.0.0.1", 10, 11, 12, 0)
+	fmt.Println("Stage =", stage)
 	sshConnection := NewSSHConnection("rlogin.cs.vt.edu", "wanyef", 22)
 	defer sshConnection.Close()
 	out, err := sshConnection.RunCommand("ls")
