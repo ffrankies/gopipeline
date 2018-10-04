@@ -18,16 +18,20 @@ var pipelineStageList []PipelineStage
 func Run(command string, configPath string, functionList []gopipeline.AnyFunc) {
 	stage := NewPipelineStage("127.0.0.1", 10, 11, 12, 0)
 	fmt.Println("Stage =", stage)
-	sshConnection := NewSSHConnection("rlogin.cs.vt.edu", "wanyef", 22)
-	defer sshConnection.Close()
-	out, err := sshConnection.RunCommand("ls")
-	if err != nil {
-		panic("Failed to run ls: " + err.Error())
+	config := NewConfig(configPath)
+	fmt.Println("Config = ", config)
+	for _, address := range config.NodeList {
+		sshConnection := NewSSHConnection(address, config.SSHUser, config.SSHPort)
+		out, err := sshConnection.RunCommand("hostname")
+		if err != nil {
+			panic("Failed to run ls: " + err.Error())
+		}
+		fmt.Println("The hostname is...", out)
+		sshConnection.Close()
 	}
-	fmt.Println(out)
-	out, err = sshConnection.RunCommand("ps")
-	if err != nil {
-		panic("Failed to run ps: " + err.Error())
-	}
-	fmt.Println(out)
+	// out, err = sshConnection.RunCommand("ps")
+	// if err != nil {
+	// 	panic("Failed to run ps: " + err.Error())
+	// }
+	// fmt.Println(out)
 }

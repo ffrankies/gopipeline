@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"net"
 	"os/user"
+	"strconv"
+	"strings"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -30,7 +32,7 @@ func NewSSHConnection(address string, remoteUser string, port int) *SSHConnectio
 	}
 	sshConnection.PrivateKeyPath = usr.HomeDir + "/.ssh/id_rsa"
 	sshConnection.Port = 22
-	sshConnection.client = createClient(sshConnection.User, sshConnection.Address)
+	sshConnection.client = createClient(sshConnection.User, sshConnection.Address, sshConnection.Port)
 	return sshConnection
 }
 
@@ -56,9 +58,15 @@ func (conn *SSHConnection) Close() error {
 }
 
 // Creates a client connection to the given address with the given user
-func createClient(remoteUser string, address string) *ssh.Client {
+func createClient(remoteUser string, address string, port int) *ssh.Client {
 	publicKeyConfig := getPublicKeyConfig(remoteUser)
-	sshClient, err := ssh.Dial("tcp", address+":22", publicKeyConfig)
+	connectionType := "tcp"
+	addressAndPort := address + ":" + strconv.Itoa(port)
+	if strings.Count(address, ":") > 0 {
+		connectionType = "tcp6"
+		addressAndPort = "[" + address + "]:" + strconv.Itoa(port)
+	}
+	sshClient, err := ssh.Dial(connectionType, addressAndPort, publicKeyConfig)
 	if err != nil {
 		panic(err)
 	}

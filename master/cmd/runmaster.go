@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	master.Run("example", "GoPipeline.config", make([]gopipeline.AnyFunc, 0))
+	master.Run("example", "GoPipeline.config.yaml", make([]gopipeline.AnyFunc, 0))
 }
