@@ -1,0 +1,7 @@
+---
+SSHUser: sample  # This username will be used to connect to all the pipeline nodes
+SSHPort: 22  # This will be the port used to connect to all the pipeline nodes
+NodeList: # The list of nodes to which we can connect
+- some.node.on.some.server
+- 111.11.11.11
+- 2001:0db8:85a3:0000:0000:8a2e:0370:7334
