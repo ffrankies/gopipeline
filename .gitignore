@@ -13,3 +13,9 @@
 
 # Ignore vscode
 .vscode/
+
+# Ignore config file
+GoPipeline.config.yaml
+
+# Ignore built commands
+runmaster
