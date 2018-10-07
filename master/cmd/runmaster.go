@@ -16,5 +16,5 @@ func main() {
 	for i := 0; i < 10; i++ {
 		functionList = append(functionList, exampleFunc)
 	}
-	master.Run("example", "GoPipeline.config2.yaml", functionList)
+	master.Run("example", "GoPipeline.config.yaml", functionList)
 }
