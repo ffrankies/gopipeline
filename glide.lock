@@ -1,5 +1,5 @@
-hash: f94d6f7f64ca446dbf72d2576302ea3c5c32c23dfa2f88190147be88e77190e1
-updated: 2018-10-01T23:06:10.0676886-04:00
+hash: 2dc7bebf72381815c5d4c9e5a4419e7c276bd27282eb2e8dd3ad934323caf99d
+updated: 2018-10-03T20:25:28.2913682-04:00
 imports:
 - name: golang.org/x/crypto
   version: e3636079e1a4c1f337f212cc5cd2aca108f6c900
@@ -11,4 +11,6 @@ imports:
   - internal/subtle
   - poly1305
   - ssh
+- name: gopkg.in/yaml.v2
+  version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 testImports: []
