@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/ffrankies/gopipeline"
+	"github.com/ffrankies/gopipeline/internal/common"
 	"github.com/ffrankies/gopipeline/master"
 )
 
@@ -12,7 +12,7 @@ func exampleFunc(args ...interface{}) interface{} {
 }
 
 func main() {
-	functionList := make([]gopipeline.AnyFunc, 0)
+	functionList := make([]common.AnyFunc, 0)
 	for i := 0; i < 10; i++ {
 		functionList = append(functionList, exampleFunc)
 	}
