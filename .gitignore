@@ -16,6 +16,7 @@
 
 # Ignore config file
 GoPipeline.config.yaml
+GoPipeline.config2.yaml
 
 # Ignore built commands
 runmaster
