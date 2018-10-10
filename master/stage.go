@@ -2,7 +2,6 @@ package master
 
 import (
 	"strconv"
-	"strings"
 )
 
 // PipelineStage struct refers to a stage in the pipeline
@@ -28,13 +27,11 @@ func NewPipelineStage(nodeAddress string, masterSocketPort int, inputSocketPort 
 
 // String converts the PipelineStage struct into a String
 func (stage *PipelineStage) String() string {
-	var stringBuilder strings.Builder
-	stringBuilder.WriteString("PipelineStage {\n")
-	stringBuilder.WriteString("\tNodeAddress: " + stage.NodeAddress + "\n")
-	stringBuilder.WriteString("\tMasterSocketPort: " + strconv.Itoa(stage.MasterSocketPort) + "\n")
-	stringBuilder.WriteString("\tInputSocketPort: " + strconv.Itoa(stage.InputSocketPort) + "\n")
-	stringBuilder.WriteString("\tOutputSocketPort: " + strconv.Itoa(stage.OutputSocketPort) + "\n")
-	stringBuilder.WriteString("\tPosition: " + strconv.Itoa(stage.Position) + "\n")
-	stringBuilder.WriteString("}")
-	return stringBuilder.String()
+	pipelineStageString := "PipelineStage {\n"
+	pipelineStageString += "\tNodeAddress: " + stage.NodeAddress + "\n"
+	pipelineStageString += "\tMasterSocketPort: " + strconv.Itoa(stage.MasterSocketPort) + "\n"
+	pipelineStageString += "\tInputSocketPort: " + strconv.Itoa(stage.InputSocketPort) + "\n"
+	pipelineStageString += "\tOutputSocketPort: " + strconv.Itoa(stage.OutputSocketPort) + "\n"
+	pipelineStageString += "\tPosition: " + strconv.Itoa(stage.Position) + "\n}"
+	return pipelineStageString
 }
