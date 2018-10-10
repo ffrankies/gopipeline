@@ -36,8 +36,8 @@ func NewSSHConnection(address string, remoteUser string, port int) *SSHConnectio
 	return sshConnection
 }
 
-// RunCommand a single command through the SSH Connection
-func (conn *SSHConnection) RunCommand(command string) (output string, err error) {
+// RunCommandAndWait runs a single command through the SSH Connection, and waits for it to exit
+func (conn *SSHConnection) RunCommandAndWait(command string) (output string, err error) {
 	session, err := conn.client.NewSession()
 	if err != nil {
 		return
@@ -48,6 +48,17 @@ func (conn *SSHConnection) RunCommand(command string) (output string, err error)
 		return
 	}
 	output = string(outputBytes)
+	return
+}
+
+// RunCommand runs a single command through the SSH Connection, does not wait for results
+func (conn *SSHConnection) RunCommand(command string) (err error) {
+	session, err := conn.client.NewSession()
+	if err != nil {
+		return
+	}
+	defer session.Close()
+	err = session.Run(command)
 	return
 }
 

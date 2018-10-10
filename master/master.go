@@ -73,9 +73,7 @@ func findNode(nodeAddress string) (pipelineNode *PipelineNode, foundInList bool)
 // The configPath is the path to the config file that contains the login information and node list.
 // The functionList is the list of functions to pipeline.
 func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
-	fmt.Println("My options are...", options)
 	config := NewConfig(options.ConfigPath)
-	fmt.Println("Config = ", config)
 	matchStagesToNodes(functionList, config.NodeList)
 	fmt.Println("=====Node List=====")
 	fmt.Println(pipelineNodeList)
@@ -86,11 +84,11 @@ func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 		sshConnection := NewSSHConnection(stage.NodeAddress, config.SSHUser, config.SSHPort)
 		// TODO(): Create command using options.Program, server address and port number, and stage.Position
 		command := options.Program + " worker"
-		out, err := sshConnection.RunCommand(command)
+		err := sshConnection.RunCommand(command)
 		if err != nil {
-			panic("Failed to run, " + options.Program + ": " + err.Error())
+			panic("Failed to run, " + command + ": " + err.Error())
 		}
-		fmt.Println("Stage number,", stage.Position, "is running on host:", out)
+		// fmt.Println("Stage number,", stage.Position, "is running on host:", out)
 		sshConnection.Close()
 	}
 }
