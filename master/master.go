@@ -85,7 +85,8 @@ func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	for _, stage := range pipelineStageList {
 		sshConnection := NewSSHConnection(stage.NodeAddress, config.SSHUser, config.SSHPort)
 		// TODO(): Create command using options.Program, server address and port number, and stage.Position
-		out, err := sshConnection.RunCommand(options.Program)
+		command := options.Program + " worker"
+		out, err := sshConnection.RunCommand(command)
 		if err != nil {
 			panic("Failed to run, " + options.Program + ": " + err.Error())
 		}
