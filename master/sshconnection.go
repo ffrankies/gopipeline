@@ -31,7 +31,7 @@ func NewSSHConnection(address string, remoteUser string, port int) *SSHConnectio
 		panic(err)
 	}
 	sshConnection.PrivateKeyPath = usr.HomeDir + "/.ssh/id_rsa"
-	sshConnection.Port = 22
+	sshConnection.Port = port
 	sshConnection.client = createClient(sshConnection.User, sshConnection.Address, sshConnection.Port)
 	return sshConnection
 }
