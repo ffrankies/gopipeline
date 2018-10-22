@@ -117,7 +117,7 @@ func NextIteration(args ...interface{}) interface{} {
 
 // FirstIteration creates the first iteration of sets, containing single values
 func FirstIteration(originalSetList *SetList) *SetList {
-	currentSet := new(SetList)
+	currentSetList := new(SetList)
 	presenceCheckerSet := new(Set)
 	for _, set := range originalSetList.List {
 		for _, value := range set.Values {
@@ -125,11 +125,35 @@ func FirstIteration(originalSetList *SetList) *SetList {
 				presenceCheckerSet.Add(value)
 				newSet := new(Set)
 				newSet.Add(value)
-				currentSet.Add(newSet)
+				currentSetList.Add(newSet)
 			}
 		}
 	}
-	return currentSet
+	averageFrequency := CalculateFrequencies(originalSetList, currentSetList)
+	currentSetList = FilterSetListByFrequency(currentSetList, averageFrequency)
+	return currentSetList
+}
+
+// CalculateFrequencies for every set in the current set list, and returns the average frequency
+func CalculateFrequencies(originalSetList *SetList, currentSetList *SetList) float64 {
+	sum := 0
+	for _, set := range currentSetList.List {
+		frequency := originalSetList.Frequency(set)
+		set.Count = frequency
+		sum += frequency
+	}
+	return float64(sum) / float64(len(currentSetList.List))
+}
+
+//FilterSetListByFrequency filters out any set list whose frequency is less than the average
+func FilterSetListByFrequency(setList *SetList, averageFrequency float64) *SetList {
+	filteredSetList := new(SetList)
+	for _, set := range setList.List {
+		if float64(set.Count) > averageFrequency {
+			filteredSetList.Add(set)
+		}
+	}
+	return filteredSetList
 }
 
 func main() {
