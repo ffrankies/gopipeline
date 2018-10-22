@@ -2,12 +2,21 @@
 package master
 
 import (
+	"encoding/gob"
 	"fmt"
 	"math"
+	"net"
 
 	"github.com/ffrankies/gopipeline/internal/common"
 	"github.com/ffrankies/gopipeline/types"
 )
+
+type Address struct {
+	Data string
+}
+type Pipeline struct {
+	NodeNumber string
+}
 
 // The list of pipeline stages
 var pipelineStageList []*PipelineStage
@@ -66,6 +75,20 @@ func findNode(nodeAddress string) (pipelineNode *PipelineNode, foundInList bool)
 	foundInList = false
 	return
 }
+func handleConnectionFromWorker(conn net.Conn) {
+	dec := gob.NewDecoder(conn)
+	p := &Address{}
+	dec.Decode(p)
+	fmt.Println(p.Data)
+	workerAddress := p.Data
+	conn1, err := net.Dial("tcp", workerAddress)
+	if err != nil {
+		panic(err)
+	}
+	// Find the next address..????????????
+	conn1.Write([]byte("next Address"))
+	conn1.Close()
+}
 
 // Run executes the main logic of the "master" node.
 // This involves setting up the pipeline stages, and starting worker processes on each node in the pipeline.
@@ -91,4 +114,20 @@ func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 		// fmt.Println("Stage number,", stage.Position, "is running on host:", out)
 		sshConnection.Close()
 	}
+	//Master listens for connection and data from worker
+	ln, err := net.Listen("tcp", "0:8081")
+	if err != err {
+		panic(err)
+	}
+
+	for {
+		conn, err := ln.Accept()
+		//newAddress := conn.RemoteAddr()
+		if err != nil {
+			panic(err)
+		}
+		go handleConnectionFromWorker(conn)
+
+	}
+
 }
