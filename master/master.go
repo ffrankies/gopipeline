@@ -104,17 +104,17 @@ func receiveConnectionsGoRoutine(listener net.Listener) {
 
 func handleConnectionFromWorker(conn net.Conn) {
 	dec := gob.NewDecoder(conn)
-	p := &Address{}
-	dec.Decode(p)
-	fmt.Println(p.Data)
-	workerAddress := p.Data
-	conn1, err := net.Dial("tcp", workerAddress)
-	if err != nil {
-		panic(err)
-	}
-	// Find the next address..????????????
-	conn1.Write([]byte("next Address"))
-	conn1.Close()
+	message := new(types.Message)
+	dec.Decode(message)
+	nextNodeAddress := (message.Contents).(string)
+	fmt.Println("next node address:", nextNodeAddress, "gotten from:", message.Sender)
+	// conn1, err := net.Dial("tcp", workerAddress)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// // Find the next address..????????????
+	// conn1.Write([]byte("next Address"))
+	// conn1.Close()
 }
 
 // buildWorkerCommand builds the command with which to start a worker
