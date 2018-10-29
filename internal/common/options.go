@@ -21,7 +21,6 @@ func NewMasterOptions(program string) *MasterOptions {
 // WorkerOptions contains the command-line options passed to the worker process
 type WorkerOptions struct {
 	MasterAddress string // The internet address of the master node
-	MasterPort    int    // The port number of the master process
 	Position      int    // The position of the worker process within the pipeline stages
 }
 
@@ -31,7 +30,6 @@ func NewWorkerOptions() *WorkerOptions {
 	options := new(WorkerOptions)
 	flag.StringVar(&options.MasterAddress, "address", "127.0.0.1",
 		"The internet address of the node running the master process")
-	flag.IntVar(&options.MasterPort, "port", 8374, "The port number of the master process")
 	flag.IntVar(&options.Position, "position", 0, "The position of the worker process within the pipeline stages")
 	flag.Parse()
 	return options
