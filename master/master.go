@@ -75,6 +75,33 @@ func findNode(nodeAddress string) (pipelineNode *PipelineNode, foundInList bool)
 	foundInList = false
 	return
 }
+
+// startListener creates and starts a listener that listens for connections from workers. For each connection, it
+// starts a goroutine that reads the messages from the connection.
+func startListener() (masterAddress string, err error) {
+	listener, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		return
+	}
+	go receiveConnectionsGoRoutine(listener)
+	masterPort := common.GetPortNumberFromListener(listener)
+	masterHost := common.GetOutboundIPAddressHack()
+	masterAddress = masterHost + ":" + masterPort
+	return
+}
+
+// receiveConnectionsGoRoutine is a goroutine that accepts connections from the workers and parses the messages
+// received from the workers in separate gosubroutines.
+func receiveConnectionsGoRoutine(listener net.Listener) {
+	for {
+		connection, err := listener.Accept()
+		if err != nil {
+			panic(err)
+		}
+		go handleConnectionFromWorker(connection)
+	}
+}
+
 func handleConnectionFromWorker(conn net.Conn) {
 	dec := gob.NewDecoder(conn)
 	p := &Address{}
@@ -90,6 +117,12 @@ func handleConnectionFromWorker(conn net.Conn) {
 	conn1.Close()
 }
 
+// buildWorkerCommand builds the command with which to start a worker
+func buildWorkerCommand(program string, masterAddress string) string {
+	command := program + " -address=" + masterAddress + " worker"
+	return command
+}
+
 // Run executes the main logic of the "master" node.
 // This involves setting up the pipeline stages, and starting worker processes on each node in the pipeline.
 // The command is the command to be used to start the worker process.
@@ -102,32 +135,22 @@ func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	fmt.Println(pipelineNodeList)
 	fmt.Println("=====Stage List=====")
 	fmt.Println(pipelineStageList)
+	masterAddress, err := startListener()
+	if err != nil {
+		panic(err)
+	}
 	// TODO(): Set up a server for communicating with worker processes
 	for _, stage := range pipelineStageList {
 		sshConnection := NewSSHConnection(stage.NodeAddress, config.SSHUser, config.SSHPort)
-		// TODO(): Create command using options.Program, server address and port number, and stage.Position
-		command := options.Program + " worker"
+		command := buildWorkerCommand(options.Program, masterAddress)
+		fmt.Println("Running command:", command, "on node:", stage.NodeAddress)
 		err := sshConnection.RunCommand(command)
 		if err != nil {
 			panic("Failed to run, " + command + ": " + err.Error())
 		}
-		// fmt.Println("Stage number,", stage.Position, "is running on host:", out)
 		sshConnection.Close()
 	}
-	//Master listens for connection and data from worker
-	ln, err := net.Listen("tcp", "0:8081")
-	if err != err {
-		panic(err)
-	}
-
 	for {
-		conn, err := ln.Accept()
-		//newAddress := conn.RemoteAddr()
-		if err != nil {
-			panic(err)
-		}
-		go handleConnectionFromWorker(conn)
-
+		// Busy wait
 	}
-
 }
