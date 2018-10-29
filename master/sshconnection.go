@@ -60,10 +60,11 @@ func (conn *SSHConnection) RunCommand(command string) {
 	}
 	defer session.Close()
 	output, err := session.CombinedOutput(command)
+	fmt.Println(string(output))
 	if err != nil {
+		fmt.Println(err.Error())
 		panic(err)
 	}
-	fmt.Println(string(output))
 	if err := conn.Close(); err != nil {
 		panic(err)
 	}

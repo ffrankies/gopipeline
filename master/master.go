@@ -79,13 +79,13 @@ func findNode(nodeAddress string) (pipelineNode *PipelineNode, foundInList bool)
 // startListener creates and starts a listener that listens for connections from workers. For each connection, it
 // starts a goroutine that reads the messages from the connection.
 func startListener() (masterAddress string, err error) {
-	listener, err := net.Listen("tcp", "localhost:0")
+	masterHost := common.GetOutboundIPAddressHack()
+	listener, err := net.Listen("tcp", masterHost+":0")
 	if err != nil {
 		return
 	}
 	go receiveConnectionsGoRoutine(listener)
 	masterPort := common.GetPortNumberFromListener(listener)
-	masterHost := common.GetOutboundIPAddressHack()
 	masterAddress = masterHost + ":" + masterPort
 	return
 }
