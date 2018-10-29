@@ -1,82 +1,115 @@
 package worker
 
 import (
-	"bufio"
 	"encoding/gob"
-	"fmt"
 	"net"
 
 	"github.com/ffrankies/gopipeline/internal/common"
 	"github.com/ffrankies/gopipeline/types"
 )
 
-type Address struct {
-	Data string
+// sendPortNumberToMaster opens a connection to the master node, and sends the port number of its listener
+func sendPortNumberToMaster(masterAddress string, myAddress string, myPortNumber string) {
+	message := new(types.Message)
+	message.Sender = myAddress
+	message.Contents = myPortNumber
+	connection, err := net.Dial("tcp", masterAddress)
+	defer connection.Close()
+	if err != nil {
+		panic(err)
+	}
+	encoder := gob.NewEncoder(connection)
+	encoder.Encode(message)
 }
 
-type ResultData interface {
-	Data() string
-	Result() string
+// receiveAddressOfNextNode listens for a message on the listener, assumes it is from master and contains the address
+// of the next code, and parses it as such
+func receiveAddressOfNextNode(listener net.Listener) string {
+	message := new(types.Message)
+	connection, err := listener.Accept()
+	defer connection.Close()
+	if err != nil {
+		panic(err)
+	}
+	decoder := gob.NewDecoder(connection)
+	decoder.Decode(message)
+	nextNodeAddress := (message.Contents).(string)
+	return nextNodeAddress
 }
 
-var nextNodeAddress string
+// runFirstStage runs the function of a worker running the first stage
+func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myAddress string) {
+	connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
+	if err != nil {
+		panic(err)
+	}
+	encoder := gob.NewEncoder(connectionToNextWorker)
+	for {
+		message := new(types.Message)
+		result := functionList[0](message.Contents)
+		message.Sender = myAddress
+		message.Contents = result
+		encoder.Encode(message)
+	}
+}
 
+// runLastStage runs the function of a worker running the last stage
+func runLastStage(listener net.Listener, functionList []types.AnyFunc) {
+	connectionFromPreviousWorker, err := listener.Accept()
+	if err != nil {
+		panic(err)
+	}
+	decoder := gob.NewDecoder(connectionFromPreviousWorker)
+	for {
+		message := new(types.Message)
+		decoder.Decode(message)
+		functionList[len(functionList)-1](message.Contents)
+	}
+}
+
+// runIntermediateStage runs the function of a worker running an intermediate stage
+func runIntermediateStage(listener net.Listener, nextNodeAddress string, functionList []types.AnyFunc, myAddress string,
+	position int) {
+	connectionFromPreviousWorker, err := listener.Accept()
+	if err != nil {
+		panic(err)
+	}
+	connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
+	decoder := gob.NewDecoder(connectionFromPreviousWorker)
+	encoder := gob.NewEncoder(connectionToNextWorker)
+	for {
+		message := new(types.Message)
+		decoder.Decode(message)
+		result := functionList[position](message.Contents)
+		message.Sender = myAddress
+		message.Contents = result
+		encoder.Encode(message)
+	}
+}
+
+// Run the worker routine
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc) {
 	// Listens for both the master and any other connection
-	ln, err := net.Listen("tcp", "0:8081")
+	listener, err := net.Listen("tcp", "localhost:0")
 	if err != err {
 		panic(err)
 	}
-	conn, err := ln.Accept()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(conn.RemoteAddr())
-	//handle this connection based on master or other workers
-	masterdetails := options.MasterAddress + ":" + string(options.MasterPort)
-	//Sends my address as a struct data to the master.
-	conn1, err := net.Dial("tcp", masterdetails)
-	myAddress := conn1.LocalAddr()
-	if err != nil {
-		panic(err)
-	}
-	dataAddress := Address{Data: myAddress.String()}
-	da := &dataAddress
-	fmt.Println(da)
-	encoder := gob.NewEncoder(conn1)
-	encoder.Encode(da)
 
-	//Listens for port of the next one.
-	ln1, err := net.Listen("tcp", myAddress.String())
-	if err != nil {
-		panic(err)
+	// Sends my address as a struct data to the master.
+	myAddress := common.GetOutboundIPAddressHack()
+	myPortNumber := common.GetPortNumberFromListener(listener)
+	sendPortNumberToMaster(options.MasterAddress, myAddress, myPortNumber)
+	isLastWorker := options.Position == len(functionList)-1
+	var nextNodeAddress string
+	if !isLastWorker {
+		nextNodeAddress = receiveAddressOfNextNode(listener)
 	}
-	for {
-		conn1, err := ln1.Accept()
-		if err != nil {
-			continue
-		}
-		message, err := bufio.NewReader(conn1).ReadString('\n')
-		//Should receive the address of the next node here
-		//fmt.Print("Message Received:", string(message))
-		nextNodeAddress := string(message)
-	}
-
-	//Check for the postion of the node.
-	//Since it is the first node in the pipeline
-	//No data from the previous is to be received then perform the function
+	// Get data from previous worker, process it, and send results to the next worker
 	if options.Position == 0 {
-		//Functionlist????
-		result := functionList[options.Position]
-		connNext, err := net.Dial("tcp", nextNodeAddress)
-		results := ResultData{Result: result} //match the return type
-		res := &results
-		fmt.Println(res)
-		encoder := gob.NewEncoder(connNext)
-		encoder.Encode(res)
-
-	} else if options.Position == len(functionList) {
-
+		runFirstStage(nextNodeAddress, functionList, myAddress)
 	}
-
+	if isLastWorker {
+		runLastStage(listener, functionList)
+	}
+	runIntermediateStage(listener, nextNodeAddress, functionList, myAddress, options.Position)
 }
