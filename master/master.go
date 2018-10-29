@@ -144,11 +144,7 @@ func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 		sshConnection := NewSSHConnection(stage.NodeAddress, config.SSHUser, config.SSHPort)
 		command := buildWorkerCommand(options.Program, masterAddress)
 		fmt.Println("Running command:", command, "on node:", stage.NodeAddress)
-		err := sshConnection.RunCommand(command)
-		if err != nil {
-			panic("Failed to run, " + command + ": " + err.Error())
-		}
-		sshConnection.Close()
+		go sshConnection.RunCommand(command)
 	}
 	for {
 		// Busy wait

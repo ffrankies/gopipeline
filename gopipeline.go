@@ -3,12 +3,12 @@ package gopipeline
 
 import (
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/ffrankies/gopipeline/internal/common"
 	"github.com/ffrankies/gopipeline/master"
 	"github.com/ffrankies/gopipeline/types"
+	"github.com/ffrankies/gopipeline/worker"
 )
 
 // getProcessType obtains the process type from the command line arguments.
@@ -41,7 +41,7 @@ func Run(functionList []types.AnyFunc) {
 	}
 	if processType == "worker" {
 		options := common.NewWorkerOptions()
-		fmt.Println("Worker options =", options)
-		fmt.Println("Running a worker process! Woohoo!")
+		worker.Run(options, functionList)
+		return
 	}
 }
