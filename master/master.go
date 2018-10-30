@@ -137,9 +137,9 @@ func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 		panic(err)
 	}
 	for _, stage := range pipelineStageList {
-		sshConnection := NewSSHConnection(stage.NodeAddress, config.SSHUser, config.SSHPort)
+		sshConnection := NewSSHConnection(stage.Host, config.SSHUser, config.SSHPort)
 		command := buildWorkerCommand(options.Program, masterAddress)
-		fmt.Println("Running command:", command, "on node:", stage.NodeAddress)
+		fmt.Println("Running command:", command, "on node:", stage.Host)
 		go sshConnection.RunCommand(command)
 	}
 	// TODO(): Get each worker's listener port
