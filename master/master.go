@@ -53,7 +53,7 @@ func calculateFunctionDensity(functionList []types.AnyFunc, nodeList []string) i
 // assignStageToNode assigns a single pipeline stage (function) to a single node
 func assignStageToNode(function types.AnyFunc, nodeAddress string) {
 	pipelineNode, foundInList := findNode(nodeAddress)
-	pipelineStage := NewPipelineStage(nodeAddress, 0, 0, 0, len(pipelineStageList))
+	pipelineStage := NewPipelineStage(nodeAddress, len(pipelineStageList))
 	pipelineNode.AddStage(pipelineStage)
 	if foundInList == false {
 		pipelineNodeList = append(pipelineNodeList, pipelineNode)
@@ -125,9 +125,6 @@ func buildWorkerCommand(program string, masterAddress string) string {
 
 // Run executes the main logic of the "master" node.
 // This involves setting up the pipeline stages, and starting worker processes on each node in the pipeline.
-// The command is the command to be used to start the worker process.
-// The configPath is the path to the config file that contains the login information and node list.
-// The functionList is the list of functions to pipeline.
 func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	config := NewConfig(options.ConfigPath)
 	matchStagesToNodes(functionList, config.NodeList)
@@ -139,14 +136,16 @@ func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	if err != nil {
 		panic(err)
 	}
-	// TODO(): Set up a server for communicating with worker processes
 	for _, stage := range pipelineStageList {
 		sshConnection := NewSSHConnection(stage.NodeAddress, config.SSHUser, config.SSHPort)
 		command := buildWorkerCommand(options.Program, masterAddress)
 		fmt.Println("Running command:", command, "on node:", stage.NodeAddress)
 		go sshConnection.RunCommand(command)
 	}
-	for {
+	// TODO(): Get each worker's listener port
+	// TODO(): Send worker_{i}'s listener port to worker_{i+1}
+	// TODO(): Profit
+	for { // Scheduler should work in here
 		// Busy wait
 	}
 }
