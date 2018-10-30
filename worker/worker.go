@@ -8,11 +8,11 @@ import (
 	"github.com/ffrankies/gopipeline/types"
 )
 
-// sendPortNumberToMaster opens a connection to the master node, and sends the port number of its listener
-func sendPortNumberToMaster(masterAddress string, myID string, myPortNumber string) {
+// sendAddressToMaster opens a connection to the master node, and sends the address of its listener
+func sendAddressToMaster(masterAddress string, myID string, myAddress string) {
 	message := new(types.Message)
 	message.Sender = myID
-	message.Contents = myPortNumber
+	message.Contents = myAddress
 	connection, err := net.Dial("tcp", masterAddress)
 	defer connection.Close()
 	if err != nil {
@@ -99,7 +99,8 @@ func Run(options *common.WorkerOptions, functionList []types.AnyFunc) {
 	// Sends my address as a struct data to the master.
 	myAddress := common.GetOutboundIPAddressHack()
 	myPortNumber := common.GetPortNumberFromListener(listener)
-	sendPortNumberToMaster(options.MasterAddress, options.StageID, myPortNumber)
+	myNetAddress := common.CombineAddressAndPort(myAddress, myPortNumber)
+	sendAddressToMaster(options.MasterAddress, options.StageID, myNetAddress)
 	isLastWorker := options.Position == len(functionList)-1
 	var nextNodeAddress string
 	if !isLastWorker {
