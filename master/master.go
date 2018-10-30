@@ -11,15 +11,8 @@ import (
 	"github.com/ffrankies/gopipeline/types"
 )
 
-type Address struct {
-	Data string
-}
-type Pipeline struct {
-	NodeNumber string
-}
-
 // The list of pipeline stages
-var pipelineStageList []*PipelineStage
+var pipelineStageList = NewPipelineStageList()
 
 // The list of pipeline nodes
 var pipelineNodeList []*PipelineNode
@@ -44,7 +37,7 @@ func matchStagesToNodes(functionList []types.AnyFunc, nodeList []string) {
 
 // calculateFunctionDensity calculates the initial function density in the pipeline
 func calculateFunctionDensity(functionList []types.AnyFunc, nodeList []string) int {
-	numFunctions := len(functionList) - len(pipelineStageList)
+	numFunctions := len(functionList) - pipelineStageList.Length()
 	numNodes := len(nodeList) - len(pipelineNodeList)
 	density := math.Ceil(float64(numFunctions) / float64(numNodes))
 	return int(density)
@@ -53,12 +46,11 @@ func calculateFunctionDensity(functionList []types.AnyFunc, nodeList []string) i
 // assignStageToNode assigns a single pipeline stage (function) to a single node
 func assignStageToNode(function types.AnyFunc, nodeAddress string) {
 	pipelineNode, foundInList := findNode(nodeAddress)
-	pipelineStage := NewPipelineStage(nodeAddress, len(pipelineStageList))
+	pipelineStage := pipelineStageList.AddStage(nodeAddress, pipelineStageList.Length())
 	pipelineNode.AddStage(pipelineStage)
 	if foundInList == false {
 		pipelineNodeList = append(pipelineNodeList, pipelineNode)
 	}
-	pipelineStageList = append(pipelineStageList, pipelineStage)
 }
 
 // findNode finds a particular PipelineNode in the pipelineNodeList. If the Node is not found,
@@ -102,24 +94,22 @@ func receiveConnectionsGoRoutine(listener net.Listener) {
 	}
 }
 
-func handleConnectionFromWorker(conn net.Conn) {
-	dec := gob.NewDecoder(conn)
+// handleConnectionFromWorker, at the moment, assumes no further communication from the worker node. Thus, it assumes
+// the worker sends it's listener address, parses the message as such, and then closes the connection.
+// In the future, it should check message type, and either do the above, or update a stage/node's statistics
+func handleConnectionFromWorker(connection net.Conn) {
+	decoder := gob.NewDecoder(connection)
 	message := new(types.Message)
-	dec.Decode(message)
+	decoder.Decode(message)
 	nextNodeAddress := (message.Contents).(string)
-	fmt.Println("next node address:", nextNodeAddress, "gotten from:", message.Sender)
-	// conn1, err := net.Dial("tcp", workerAddress)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// // Find the next address..????????????
-	// conn1.Write([]byte("next Address"))
-	// conn1.Close()
+	pipelineStageList.Find(message.Sender).UpdateListenerPort(nextNodeAddress)
+	fmt.Println("Updated", pipelineStageList.Find(message.Sender))
+	connection.Close()
 }
 
 // buildWorkerCommand builds the command with which to start a worker
-func buildWorkerCommand(program string, masterAddress string) string {
-	command := program + " -address=" + masterAddress + " worker"
+func buildWorkerCommand(program string, masterAddress string, stageID string) string {
+	command := program + " -address=" + masterAddress + " id=" + stageID + " worker"
 	return command
 }
 
@@ -136,13 +126,14 @@ func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	if err != nil {
 		panic(err)
 	}
-	for _, stage := range pipelineStageList {
+	for _, stage := range pipelineStageList.List {
 		sshConnection := NewSSHConnection(stage.Host, config.SSHUser, config.SSHPort)
-		command := buildWorkerCommand(options.Program, masterAddress)
+		command := buildWorkerCommand(options.Program, masterAddress, stage.StageID)
 		fmt.Println("Running command:", command, "on node:", stage.Host)
 		go sshConnection.RunCommand(command)
 	}
-	// TODO(): Get each worker's listener port
+	pipelineStageList.WaitUntilAllListenerPortsUpdated()
+	fmt.Println("All stages are now updated!")
 	// TODO(): Send worker_{i}'s listener port to worker_{i+1}
 	// TODO(): Profit
 	for { // Scheduler should work in here

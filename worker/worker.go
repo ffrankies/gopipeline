@@ -9,9 +9,9 @@ import (
 )
 
 // sendPortNumberToMaster opens a connection to the master node, and sends the port number of its listener
-func sendPortNumberToMaster(masterAddress string, myAddress string, myPortNumber string) {
+func sendPortNumberToMaster(masterAddress string, myID string, myPortNumber string) {
 	message := new(types.Message)
-	message.Sender = myAddress
+	message.Sender = myID
 	message.Contents = myPortNumber
 	connection, err := net.Dial("tcp", masterAddress)
 	defer connection.Close()
@@ -99,7 +99,7 @@ func Run(options *common.WorkerOptions, functionList []types.AnyFunc) {
 	// Sends my address as a struct data to the master.
 	myAddress := common.GetOutboundIPAddressHack()
 	myPortNumber := common.GetPortNumberFromListener(listener)
-	sendPortNumberToMaster(options.MasterAddress, myAddress, myPortNumber)
+	sendPortNumberToMaster(options.MasterAddress, options.StageID, myPortNumber)
 	isLastWorker := options.Position == len(functionList)-1
 	var nextNodeAddress string
 	if !isLastWorker {
