@@ -2,25 +2,24 @@ package master
 
 import (
 	"strconv"
+	"strings"
 )
 
 // PipelineStage struct refers to a stage in the pipeline
 type PipelineStage struct {
-	NodeAddress      string // The IP address of the node on which this is run
-	MasterSocketPort int    // The port number for the worker socket on this node
-	InputSocketPort  int    // The port number for the input socket on this node
-	OutputSocketPort int    // The port number for the output socket on this node
-	Position         int    // The Stage's position in the pipeline
+	Host         string // The host on which this stage is being run
+	NetAddress   string // The net address to which to
+	ListenerPort string // The port number on which the listener is running
+	Position     int    // The Stage's position in the pipeline
 }
 
-// NewPipelineStage creates a new PipelineStage object
-func NewPipelineStage(nodeAddress string, masterSocketPort int, inputSocketPort int, outputSocketPort int,
-	position int) *PipelineStage {
+// NewPipelineStage creates a new PipelineStage object. On creation, we don't know the stage's NetAddress or Port, so
+// those are initialized as empty strings
+func NewPipelineStage(host string, position int) *PipelineStage {
 	pipelineStage := new(PipelineStage)
-	pipelineStage.NodeAddress = nodeAddress
-	pipelineStage.MasterSocketPort = masterSocketPort
-	pipelineStage.InputSocketPort = inputSocketPort
-	pipelineStage.OutputSocketPort = outputSocketPort
+	pipelineStage.Host = host
+	pipelineStage.ListenerPort = ""
+	pipelineStage.NetAddress = ""
 	pipelineStage.Position = position
 	return pipelineStage
 }
@@ -28,10 +27,19 @@ func NewPipelineStage(nodeAddress string, masterSocketPort int, inputSocketPort 
 // String converts the PipelineStage struct into a String
 func (stage *PipelineStage) String() string {
 	pipelineStageString := "PipelineStage {\n"
-	pipelineStageString += "\tNodeAddress: " + stage.NodeAddress + "\n"
-	pipelineStageString += "\tMasterSocketPort: " + strconv.Itoa(stage.MasterSocketPort) + "\n"
-	pipelineStageString += "\tInputSocketPort: " + strconv.Itoa(stage.InputSocketPort) + "\n"
-	pipelineStageString += "\tOutputSocketPort: " + strconv.Itoa(stage.OutputSocketPort) + "\n"
+	pipelineStageString += "\tHost: " + stage.Host + "\n"
+	pipelineStageString += "\tNetAddress: " + stage.NetAddress + "\n"
+	pipelineStageString += "\tListenerPort: " + stage.ListenerPort + "\n"
 	pipelineStageString += "\tPosition: " + strconv.Itoa(stage.Position) + "\n}"
 	return pipelineStageString
+}
+
+// UpdateListenerPort updates the stage's listener port, and combines the port number and host to form a netaddress
+func (stage *PipelineStage) UpdateListenerPort(listenerPort string) {
+	stage.ListenerPort = listenerPort
+	if strings.Count(stage.Host, ":") > 0 { // If Host is an IPv6 address
+		stage.NetAddress = "[" + stage.Host + "]:" + listenerPort
+	} else {
+		stage.NetAddress = stage.Host + ":" + listenerPort
+	}
 }
