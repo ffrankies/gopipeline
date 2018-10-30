@@ -103,14 +103,14 @@ func handleConnectionFromWorker(connection net.Conn) {
 	decoder.Decode(message)
 	nextNodeAddress := (message.Contents).(string)
 	fmt.Println("Received addr: ", nextNodeAddress, " from ", message.Sender)
-	// pipelineStageList.Find(message.Sender).UpdateListenerPort(nextNodeAddress)
+	pipelineStageList.Find(message.Sender).UpdateListenerPort(nextNodeAddress)
 	fmt.Println("Updated", pipelineStageList.Find(message.Sender))
 	connection.Close()
 }
 
 // buildWorkerCommand builds the command with which to start a worker
 func buildWorkerCommand(program string, masterAddress string, stageID string) string {
-	command := program + " -address=" + masterAddress + " id=" + stageID + " worker"
+	command := program + " -address=" + masterAddress + " -id=" + stageID + " worker"
 	return command
 }
 
