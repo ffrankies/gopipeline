@@ -2,9 +2,7 @@ package worker
 
 import (
 	"encoding/gob"
-	"log"
 	"net"
-	"os"
 
 	"github.com/ffrankies/gopipeline/internal/common"
 	"github.com/ffrankies/gopipeline/types"
@@ -15,18 +13,13 @@ func sendPortNumberToMaster(masterAddress string, myAddress string, myPortNumber
 	message := new(types.Message)
 	message.Sender = myAddress
 	message.Contents = myPortNumber
-	log.Println("Set up my message")
 	connection, err := net.Dial("tcp", masterAddress)
-	log.Println("Dialed master")
 	defer connection.Close()
 	if err != nil {
-		log.Println(err.Error())
 		panic(err)
 	}
 	encoder := gob.NewEncoder(connection)
-	log.Println("Set up encoder")
 	encoder.Encode(message)
-	log.Println("Sent message!")
 }
 
 // receiveAddressOfNextNode listens for a message on the listener, assumes it is from master and contains the address
@@ -97,34 +90,22 @@ func runIntermediateStage(listener net.Listener, nextNodeAddress string, functio
 // Run the worker routine
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc) {
 
-	f, err := os.OpenFile("testlogfile", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
-	}
-	defer f.Close()
-
-	log.SetOutput(f)
-	log.Println("This is a test log entry")
-
 	// Listens for both the master and any other connection
 	listener, err := net.Listen("tcp", "localhost:0")
 	if err != err {
 		panic(err)
 	}
 
-	log.Println("Got listener")
-
 	// Sends my address as a struct data to the master.
 	myAddress := common.GetOutboundIPAddressHack()
 	myPortNumber := common.GetPortNumberFromListener(listener)
-	log.Println("Found my port number")
 	sendPortNumberToMaster(options.MasterAddress, myAddress, myPortNumber)
-	log.Println("Sent port number to master")
 	isLastWorker := options.Position == len(functionList)-1
 	var nextNodeAddress string
 	if !isLastWorker {
 		nextNodeAddress = receiveAddressOfNextNode(listener)
 	}
+
 	// Get data from previous worker, process it, and send results to the next worker
 	if options.Position == 0 {
 		runFirstStage(nextNodeAddress, functionList, myAddress)
