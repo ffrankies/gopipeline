@@ -6,6 +6,6 @@ type AnyFunc func(...interface{}) interface{}
 
 // Message is a generic form of the messages passed between GoPipeline nodes
 type Message struct {
-	Sender   string
-	Contents interface{}
+	Sender   string      // The ID Of the sender
+	Contents interface{} // The contents of the message, can be of any type
 }
