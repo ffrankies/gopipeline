@@ -44,6 +44,17 @@ func (stageList *PipelineStageList) Find(id string) *PipelineStage {
 	return nil
 }
 
+// FindByPosition loops through the stageList and returns the PipelineStage with a matching position. IN the future, it
+// should return a list of PipelineStages with a matching position
+func (stageList *PipelineStageList) FindByPosition(position int) *PipelineStage {
+	for _, stage := range stageList.List {
+		if stage.Position == position {
+			return stage
+		}
+	}
+	return nil
+}
+
 // WaitUntilAllListenerPortsUpdated busy waits until there are no more stages whose listener port needs to be updated
 func (stageList *PipelineStageList) WaitUntilAllListenerPortsUpdated() {
 	allUpdated := false
