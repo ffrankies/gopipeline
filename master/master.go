@@ -103,7 +103,7 @@ func handleConnectionFromWorker(connection net.Conn) {
 	decoder.Decode(message)
 	nextNodeAddress := (message.Contents).(string)
 	fmt.Println("Received addr: ", nextNodeAddress, " from ", message.Sender)
-	pipelineStageList.Find(message.Sender).UpdateListenerPort(nextNodeAddress)
+	pipelineStageList.Find(message.Sender).NetAddress = nextNodeAddress
 	fmt.Println("Updated", pipelineStageList.Find(message.Sender))
 	connection.Close()
 }
