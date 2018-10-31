@@ -70,11 +70,10 @@ func (stageList *PipelineStageList) WaitUntilAllListenerPortsUpdated() {
 
 // PipelineStage struct refers to a stage in the pipeline
 type PipelineStage struct {
-	Host         string // The host on which this stage is being run
-	NetAddress   string // The net address to which to
-	ListenerPort string // The port number on which the listener is running
-	Position     int    // The Stage's position in the pipeline
-	StageID      string // The ID of this stage
+	Host       string // The host on which this stage is being run
+	NetAddress string // The net address to which to
+	Position   int    // The Stage's position in the pipeline
+	StageID    string // The ID of this stage
 }
 
 // NewPipelineStage creates a new PipelineStage object. On creation, we don't know the stage's NetAddress or Port, so
