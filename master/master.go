@@ -101,10 +101,12 @@ func handleConnectionFromWorker(connection net.Conn) {
 	decoder := gob.NewDecoder(connection)
 	message := new(types.Message)
 	decoder.Decode(message)
-	nextNodeAddress := (message.Contents).(string)
-	fmt.Println("Received addr: ", nextNodeAddress, " from ", message.Sender)
-	pipelineStageList.Find(message.Sender).NetAddress = nextNodeAddress
-	fmt.Println("Updated", pipelineStageList.Find(message.Sender))
+	if message.Description == common.MsgStageAddr {
+		nextNodeAddress := (message.Contents).(string)
+		pipelineStageList.Find(message.Sender).NetAddress = nextNodeAddress
+	} else {
+		fmt.Println("Received invalid message type from", message.Sender)
+	}
 	connection.Close()
 }
 
@@ -114,24 +116,69 @@ func buildWorkerCommand(program string, masterAddress string, stageID string) st
 	return command
 }
 
+// establishInitialWorkerCommunication establishes initial communication between workers by telling them the address
+// of the next worker in the pipeline
+func establishWorkerCommunication(numPositions int) {
+	for position := 1; position < numPositions; position++ {
+		nextWorker := pipelineStageList.FindByPosition(position)
+		currentWorker := pipelineStageList.FindByPosition(position - 1)
+		sendNextWorkerAddress(currentWorker, nextWorker)
+	}
+}
+
+// sendNextWorkerAddress sends the next worker's address to the given worker
+func sendNextWorkerAddress(currentWorker *PipelineStage, nextWorker *PipelineStage) {
+	message := new(types.Message)
+	message.Sender = "0"
+	message.Description = common.MsgNextStageAddr
+	message.Contents = nextWorker.NetAddress
+	fmt.Println("Setting up connection to:", currentWorker.NetAddress)
+	connection, err := net.Dial("tcp", currentWorker.NetAddress)
+	// defer connection.Close()
+	if err != nil {
+		panic(err)
+	}
+	encoder := gob.NewEncoder(connection)
+	encoder.Encode(message)
+	fmt.Println("Sent addr", nextWorker.NetAddress, "to:", currentWorker.NetAddress)
+}
+
+func startWorkers() {
+	message := new(types.Message)
+	message.Sender = "0"
+	message.Description = common.MsgStartWorker
+	firstStage := pipelineStageList.FindByPosition(0)
+	connection, err := net.Dial("tcp", firstStage.NetAddress)
+	if err != nil {
+		panic(err)
+	}
+	encoder := gob.NewEncoder(connection)
+	encoder.Encode(message)
+	fmt.Println("Started stage:", firstStage.StageID)
+}
+
 // Run executes the main logic of the "master" node.
 // This involves setting up the pipeline stages, and starting worker processes on each node in the pipeline.
 func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	config := NewConfig(options.ConfigPath)
+	fmt.Println("=====Doing initial scheduling=====")
 	matchStagesToNodes(functionList, config.NodeList)
 	masterAddress, err := startListener()
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println("=====Starting workers=====")
 	for _, stage := range pipelineStageList.List {
 		sshConnection := NewSSHConnection(stage.Host, config.SSHUser, config.SSHPort)
 		command := buildWorkerCommand(options.Program, masterAddress, stage.StageID)
 		fmt.Println("Running command:", command, "on node:", stage.Host)
 		go sshConnection.RunCommand(command)
 	}
+	fmt.Println("=====Waiting for workers to send their net addresses=====")
 	pipelineStageList.WaitUntilAllListenerPortsUpdated()
-	fmt.Println("All stages are now updated!")
-	// TODO(): Send worker_{i}'s listener port to worker_{i+1}
+	fmt.Println("=====Setting up communication between workers=====")
+	establishWorkerCommunication(len(functionList))
+	startWorkers()
 	// TODO(): Profit
 	for { // Scheduler should work in here
 		// Busy wait

@@ -2,6 +2,7 @@ package worker
 
 import (
 	"encoding/gob"
+	"fmt"
 	"net"
 
 	"github.com/ffrankies/gopipeline/internal/common"
@@ -12,6 +13,7 @@ import (
 func sendAddressToMaster(masterAddress string, myID string, myAddress string) {
 	message := new(types.Message)
 	message.Sender = myID
+	message.Description = common.MsgStageAddr
 	message.Contents = myAddress
 	connection, err := net.Dial("tcp", masterAddress)
 	defer connection.Close()
@@ -33,12 +35,17 @@ func receiveAddressOfNextNode(listener net.Listener) string {
 	}
 	decoder := gob.NewDecoder(connection)
 	decoder.Decode(message)
-	nextNodeAddress := (message.Contents).(string)
-	return nextNodeAddress
+	if message.Description == common.MsgNextStageAddr {
+		nextNodeAddress := (message.Contents).(string)
+		return nextNodeAddress
+	} else {
+		fmt.Println("Worker: Received invalid message from:", message.Sender)
+		return ""
+	}
 }
 
 // runFirstStage runs the function of a worker running the first stage
-func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myAddress string) {
+func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myID string) {
 	connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
 	if err != nil {
 		panic(err)
@@ -47,7 +54,8 @@ func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myAddre
 	for {
 		message := new(types.Message)
 		result := functionList[0](message.Contents)
-		message.Sender = myAddress
+		message.Sender = myID
+		message.Description = common.MsgStageResult
 		message.Contents = result
 		encoder.Encode(message)
 	}
@@ -68,7 +76,7 @@ func runLastStage(listener net.Listener, functionList []types.AnyFunc) {
 }
 
 // runIntermediateStage runs the function of a worker running an intermediate stage
-func runIntermediateStage(listener net.Listener, nextNodeAddress string, functionList []types.AnyFunc, myAddress string,
+func runIntermediateStage(listener net.Listener, nextNodeAddress string, functionList []types.AnyFunc, myID string,
 	position int) {
 	connectionFromPreviousWorker, err := listener.Accept()
 	if err != nil {
@@ -81,9 +89,28 @@ func runIntermediateStage(listener net.Listener, nextNodeAddress string, functio
 		message := new(types.Message)
 		decoder.Decode(message)
 		result := functionList[position](message.Contents)
-		message.Sender = myAddress
+		message.Sender = myID
+		message.Description = common.MsgStageResult
 		message.Contents = result
 		encoder.Encode(message)
+	}
+}
+
+// waitForStartCommand tells a worker to wait for
+func waitForStartCommand(listener net.Listener) {
+	message := new(types.Message)
+	connection, err := listener.Accept()
+	defer connection.Close()
+	if err != nil {
+		panic(err)
+	}
+	decoder := gob.NewDecoder(connection)
+	decoder.Decode(message)
+	if message.Description == common.MsgStartWorker {
+		fmt.Println("Starting pipeline")
+	} else {
+		fmt.Println("Worker: Received invalid message from:", message.Sender, "Expected: MsgStartWorker, and instead",
+			"received", message.Description)
 	}
 }
 
@@ -91,28 +118,28 @@ func runIntermediateStage(listener net.Listener, nextNodeAddress string, functio
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc) {
 
 	// Listens for both the master and any other connection
-	listener, err := net.Listen("tcp", "localhost:0")
+	myAddress := common.GetOutboundIPAddressHack()
+	listener, err := net.Listen("tcp", myAddress+":0")
 	if err != err {
 		panic(err)
 	}
 
 	// Sends my address as a struct data to the master.
-	myAddress := common.GetOutboundIPAddressHack()
 	myPortNumber := common.GetPortNumberFromListener(listener)
 	myNetAddress := common.CombineAddressAndPort(myAddress, myPortNumber)
 	sendAddressToMaster(options.MasterAddress, options.StageID, myNetAddress)
-	isLastWorker := options.Position == len(functionList)-1
+	isLastStage := options.Position == len(functionList)-1
 	var nextNodeAddress string
-	if !isLastWorker {
+	if !isLastStage {
 		nextNodeAddress = receiveAddressOfNextNode(listener)
 	}
-
 	// Get data from previous worker, process it, and send results to the next worker
 	if options.Position == 0 {
-		runFirstStage(nextNodeAddress, functionList, myAddress)
+		waitForStartCommand(listener)
+		runFirstStage(nextNodeAddress, functionList, options.StageID)
 	}
-	if isLastWorker {
+	if isLastStage {
 		runLastStage(listener, functionList)
 	}
-	runIntermediateStage(listener, nextNodeAddress, functionList, myAddress, options.Position)
+	runIntermediateStage(listener, nextNodeAddress, functionList, options.StageID, options.Position)
 }
