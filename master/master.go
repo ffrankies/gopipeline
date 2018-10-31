@@ -119,10 +119,6 @@ func buildWorkerCommand(program string, masterAddress string, stageID string) st
 func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	config := NewConfig(options.ConfigPath)
 	matchStagesToNodes(functionList, config.NodeList)
-	fmt.Println("=====Node List=====")
-	fmt.Println(pipelineNodeList)
-	fmt.Println("=====Stage List=====")
-	fmt.Println(pipelineStageList)
 	masterAddress, err := startListener()
 	if err != nil {
 		panic(err)

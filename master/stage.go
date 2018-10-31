@@ -2,7 +2,6 @@ package master
 
 import (
 	"strconv"
-	"strings"
 	"sync"
 )
 
@@ -51,7 +50,7 @@ func (stageList *PipelineStageList) WaitUntilAllListenerPortsUpdated() {
 	for allUpdated == false {
 		allUpdated = true
 		for _, stage := range stageList.List {
-			if stage.ListenerPort == "" || stage.NetAddress == "" {
+			if stage.NetAddress == "" {
 				allUpdated = false
 			}
 		}
@@ -72,7 +71,6 @@ type PipelineStage struct {
 func newPipelineStage(host string, position int, stageID string) *PipelineStage {
 	pipelineStage := new(PipelineStage)
 	pipelineStage.Host = host
-	pipelineStage.ListenerPort = ""
 	pipelineStage.NetAddress = ""
 	pipelineStage.Position = position
 	pipelineStage.StageID = stageID
@@ -84,18 +82,7 @@ func (stage *PipelineStage) String() string {
 	pipelineStageString := "PipelineStage {\n"
 	pipelineStageString += "\tHost: " + stage.Host + "\n"
 	pipelineStageString += "\tNetAddress: " + stage.NetAddress + "\n"
-	pipelineStageString += "\tListenerPort: " + stage.ListenerPort + "\n"
 	pipelineStageString += "\tPosition: " + strconv.Itoa(stage.Position) + "\n}"
 	pipelineStageString += "\tStageID: " + stage.StageID + "\n}"
 	return pipelineStageString
-}
-
-// UpdateListenerPort updates the stage's listener port, and combines the port number and host to form a netaddress
-func (stage *PipelineStage) UpdateListenerPort(listenerPort string) {
-	stage.ListenerPort = listenerPort
-	if strings.Count(stage.Host, ":") > 0 { // If Host is an IPv6 address
-		stage.NetAddress = "[" + stage.Host + "]:" + listenerPort
-	} else {
-		stage.NetAddress = stage.Host + ":" + listenerPort
-	}
 }
