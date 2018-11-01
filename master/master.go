@@ -185,7 +185,6 @@ func setUpSignalHandler(config *Config) {
 				sshConnection := NewSSHConnection(stage.Host, config.SSHUser, config.SSHPort)
 				command := "kill " + strconv.Itoa(stage.PID)
 				sshConnection.RunCommand(command)
-				sshConnection.Close()
 			}
 			os.Exit(0)
 		}
