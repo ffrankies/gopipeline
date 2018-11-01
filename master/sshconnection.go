@@ -63,7 +63,6 @@ func (conn *SSHConnection) RunCommand(command string) {
 	fmt.Println(string(output))
 	if err != nil {
 		fmt.Println(err.Error())
-		panic(err)
 	}
 	if err := conn.Close(); err != nil {
 		panic(err)

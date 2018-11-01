@@ -6,7 +6,12 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"os"
+	"os/signal"
 	"reflect"
+	"strconv"
+	"syscall"
+	"time"
 
 	"github.com/ffrankies/gopipeline/internal/common"
 	"github.com/ffrankies/gopipeline/types"
@@ -166,10 +171,32 @@ func startWorkers() {
 	fmt.Println("Started stage:", firstStage.StageID)
 }
 
+// setUpSignalHandler sets up a signal handler for clean exit on termination
+func setUpSignalHandler(config *Config) {
+	signalHandlerChannel := make(chan os.Signal, 1)
+	signal.Notify(signalHandlerChannel, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		for {
+			receivedSignal := <-signalHandlerChannel
+			fmt.Println("Received signal:", receivedSignal)
+			fmt.Println("Performing cleanup...")
+			pipelineStageList.WaitUntilAllListenerPortsUpdated()
+			for _, stage := range pipelineStageList.List {
+				sshConnection := NewSSHConnection(stage.Host, config.SSHUser, config.SSHPort)
+				command := "kill " + strconv.Itoa(stage.PID)
+				sshConnection.RunCommand(command)
+				sshConnection.Close()
+			}
+			os.Exit(0)
+		}
+	}()
+}
+
 // Run executes the main logic of the "master" node.
 // This involves setting up the pipeline stages, and starting worker processes on each node in the pipeline.
 func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	config := NewConfig(options.ConfigPath)
+	setUpSignalHandler(config)
 	fmt.Println("=====Doing initial scheduling=====")
 	matchStagesToNodes(functionList, config.NodeList)
 	masterAddress, err := startListener()
@@ -190,6 +217,6 @@ func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	startWorkers()
 	// TODO(): Profit
 	for { // Scheduler should work in here
-		// Busy wait
+		time.Sleep(1 * time.Second) // Interrupts won't work in empty for loop because that doesn't give enough time
 	}
 }
