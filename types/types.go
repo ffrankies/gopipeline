@@ -10,3 +10,9 @@ type Message struct {
 	Description int         // The message description
 	Contents    interface{} // The contents of the message, can be of any type
 }
+
+// MessageStageInfo is the message struct for sending a stage's information to master
+type MessageStageInfo struct {
+	Address string // The address of the stage
+	PID     int    // The id of the worker process running the stage
+}
