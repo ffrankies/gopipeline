@@ -1,7 +1,10 @@
 package common
 
-const MsgStageAddr int = 0
-const MsgNextStageAddr int = 1
-const MsgStageResult int = 2
-const MsgStageStats int = 3
-const MsgStartWorker int = 4
+// Identifiers for the messages sent by worker and master nodes
+const (
+	MsgStageInfo     int = 0
+	MsgNextStageAddr int = 1
+	MsgStageResult   int = 2
+	MsgStageStats    int = 3
+	MsgStartWorker   int = 4
+)
