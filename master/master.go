@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"reflect"
 
 	"github.com/ffrankies/gopipeline/internal/common"
 	"github.com/ffrankies/gopipeline/types"
@@ -98,12 +99,19 @@ func receiveConnectionsGoRoutine(listener net.Listener) {
 // the worker sends it's listener address, parses the message as such, and then closes the connection.
 // In the future, it should check message type, and either do the above, or update a stage/node's statistics
 func handleConnectionFromWorker(connection net.Conn) {
+	gob.Register(types.MessageStageInfo{})
 	decoder := gob.NewDecoder(connection)
 	message := new(types.Message)
 	decoder.Decode(message)
-	if message.Description == common.MsgStageAddr {
-		nextNodeAddress := (message.Contents).(string)
-		pipelineStageList.Find(message.Sender).NetAddress = nextNodeAddress
+	if message.Description == common.MsgStageInfo {
+		fmt.Println("Type of contents = ", reflect.TypeOf(message.Contents))
+		stageInfo, ok := (message.Contents).(types.MessageStageInfo) //.(types.MessageStageInfo)
+		if ok {
+			pipelineStageList.Find(message.Sender).NetAddress = stageInfo.Address
+			pipelineStageList.Find(message.Sender).PID = stageInfo.PID
+		} else {
+			fmt.Println("Not OK!")
+		}
 	} else {
 		fmt.Println("Received invalid message type from", message.Sender)
 	}
@@ -143,6 +151,7 @@ func sendNextWorkerAddress(currentWorker *PipelineStage, nextWorker *PipelineSta
 	fmt.Println("Sent addr", nextWorker.NetAddress, "to:", currentWorker.NetAddress)
 }
 
+// startWorkers starts the worker at position 0, thereby kick-starting the pipeline
 func startWorkers() {
 	message := new(types.Message)
 	message.Sender = "0"
