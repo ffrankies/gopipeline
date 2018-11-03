@@ -124,8 +124,11 @@ func handleConnectionFromWorker(connection net.Conn) {
 }
 
 // buildWorkerCommand builds the command with which to start a worker
-func buildWorkerCommand(program string, masterAddress string, stageID string) string {
-	command := program + " -address=" + masterAddress + " -id=" + stageID + " worker"
+func buildWorkerCommand(program string, masterAddress string, stageID string, position int) string {
+	command := program + " -address=" + masterAddress
+	command += " -id=" + stageID
+	command += " -position=" + strconv.Itoa(position)
+	command += " worker"
 	return command
 }
 
@@ -205,7 +208,7 @@ func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	fmt.Println("=====Starting workers=====")
 	for _, stage := range pipelineStageList.List {
 		sshConnection := NewSSHConnection(stage.Host, config.SSHUser, config.SSHPort)
-		command := buildWorkerCommand(options.Program, masterAddress, stage.StageID)
+		command := buildWorkerCommand(options.Program, masterAddress, stage.StageID, stage.Position)
 		fmt.Println("Running command:", command, "on node:", stage.Host)
 		go sshConnection.RunCommand(command)
 	}
