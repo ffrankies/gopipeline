@@ -5,10 +5,19 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 
 	"github.com/ffrankies/gopipeline/internal/common"
 	"github.com/ffrankies/gopipeline/types"
 )
+
+// StageID is the ID of this worker
+var StageID string
+
+func logMessage(message string) {
+	message = "Worker " + StageID + ": " + message
+	fmt.Println(message)
+}
 
 // sendInfoToMaster opens a connection to the master node, and sends the address of its listener and the pid of this
 // stage's worker process
@@ -45,10 +54,9 @@ func receiveAddressOfNextNode(listener net.Listener) string {
 	if message.Description == common.MsgNextStageAddr {
 		nextNodeAddress := (message.Contents).(string)
 		return nextNodeAddress
-	} else {
-		fmt.Println("Worker: Received invalid message from:", message.Sender)
-		return ""
 	}
+	logMessage("Received invalid message from " + message.Sender + " of type: " + strconv.Itoa(message.Description))
+	return ""
 }
 
 // runFirstStage runs the function of a worker running the first stage
@@ -60,7 +68,7 @@ func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myID st
 	encoder := gob.NewEncoder(connectionToNextWorker)
 	for {
 		message := new(types.Message)
-		result := functionList[0](message.Contents)
+		result := functionList[0]()
 		message.Sender = myID
 		message.Description = common.MsgStageResult
 		message.Contents = result
@@ -114,15 +122,16 @@ func waitForStartCommand(listener net.Listener) {
 	decoder := gob.NewDecoder(connection)
 	decoder.Decode(message)
 	if message.Description == common.MsgStartWorker {
-		fmt.Println("Starting pipeline")
+		logMessage("Starting Pipeline")
 	} else {
-		fmt.Println("Worker: Received invalid message from:", message.Sender, "Expected: MsgStartWorker, and instead",
-			"received", message.Description)
+		logMessage("Received invalid message from: " + message.Sender + " Expected: MsgStartWorker, and instead " +
+			" received " + strconv.Itoa(message.Description))
 	}
 }
 
 // Run the worker routine
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc) {
+	StageID = options.StageID
 
 	// Listens for both the master and any other connection
 	myAddress := common.GetOutboundIPAddressHack()
