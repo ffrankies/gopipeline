@@ -22,3 +22,6 @@ GoPipeline.distconfig.yaml
 
 # Ignore built commands
 runmaster
+
+#Ignore logFile
+logFile

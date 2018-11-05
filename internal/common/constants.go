@@ -8,3 +8,9 @@ const (
 	MsgStageStats    int = 3
 	MsgStartWorker   int = 4
 )
+
+// UserPath is  a user path details
+const UserPath = "/Users/bipashabanerjee/go/bin/"
+
+// LogPath defines log path details
+const LogPath = "/Users/bipashabanerjee/go/src/github.com/ffrankies/gopipeline/"

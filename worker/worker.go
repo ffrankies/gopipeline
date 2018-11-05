@@ -3,6 +3,7 @@ package worker
 import (
 	"encoding/gob"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"strconv"
@@ -22,6 +23,16 @@ func logMessage(message string) {
 // sendInfoToMaster opens a connection to the master node, and sends the address of its listener and the pid of this
 // stage's worker process
 func sendInfoToMaster(masterAddress string, myID string, myAddress string) {
+	f, err := os.OpenFile("/Users/bipashabanerjee/go/src/github.com/ffrankies/gopipeline/logFile", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//defer to close when you're done with it, not because you think it's idiomatic!
+	defer f.Close()
+	//set output of logs to f
+	log.SetOutput(f)
+	//test case
+	log.Println("sendInfoToMaster")
 	message := new(types.Message)
 	message.Sender = myID
 	message.Description = common.MsgStageInfo
@@ -43,6 +54,16 @@ func sendInfoToMaster(masterAddress string, myID string, myAddress string) {
 // receiveAddressOfNextNode listens for a message on the listener, assumes it is from master and contains the address
 // of the next code, and parses it as such
 func receiveAddressOfNextNode(listener net.Listener) string {
+	f, err := os.OpenFile("/Users/bipashabanerjee/go/src/github.com/ffrankies/gopipeline/logFile", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//defer to close when you're done with it, not because you think it's idiomatic!
+	defer f.Close()
+	//set output of logs to f
+	log.SetOutput(f)
+	//test case
+	log.Println("receiveAddressOfNextNode")
 	message := new(types.Message)
 	connection, err := listener.Accept()
 	defer connection.Close()
@@ -61,6 +82,16 @@ func receiveAddressOfNextNode(listener net.Listener) string {
 
 // runFirstStage runs the function of a worker running the first stage
 func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myID string) {
+	f, err := os.OpenFile("/Users/bipashabanerjee/go/src/github.com/ffrankies/gopipeline/logFile", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//defer to close when you're done with it, not because you think it's idiomatic!
+	defer f.Close()
+	//set output of logs to f
+	log.SetOutput(f)
+	//test case
+	log.Println("runFirstStage")
 	connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
 	if err != nil {
 		panic(err)
@@ -78,6 +109,16 @@ func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myID st
 
 // runLastStage runs the function of a worker running the last stage
 func runLastStage(listener net.Listener, functionList []types.AnyFunc) {
+	f, err := os.OpenFile("/Users/bipashabanerjee/go/src/github.com/ffrankies/gopipeline/logFile", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//defer to close when you're done with it, not because you think it's idiomatic!
+	defer f.Close()
+	//set output of logs to f
+	log.SetOutput(f)
+	//test case
+	log.Println("runLastStage")
 	connectionFromPreviousWorker, err := listener.Accept()
 	if err != nil {
 		panic(err)
@@ -93,6 +134,16 @@ func runLastStage(listener net.Listener, functionList []types.AnyFunc) {
 // runIntermediateStage runs the function of a worker running an intermediate stage
 func runIntermediateStage(listener net.Listener, nextNodeAddress string, functionList []types.AnyFunc, myID string,
 	position int) {
+	f, err := os.OpenFile("/Users/bipashabanerjee/go/src/github.com/ffrankies/gopipeline/logFile", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//defer to close when you're done with it, not because you think it's idiomatic!
+	defer f.Close()
+	//set output of logs to f
+	log.SetOutput(f)
+	//test case
+	log.Println("runIntermediateStage")
 	connectionFromPreviousWorker, err := listener.Accept()
 	if err != nil {
 		panic(err)
@@ -113,6 +164,17 @@ func runIntermediateStage(listener net.Listener, nextNodeAddress string, functio
 
 // waitForStartCommand tells a worker to wait for
 func waitForStartCommand(listener net.Listener) {
+
+	f, err := os.OpenFile("/Users/bipashabanerjee/go/src/github.com/ffrankies/gopipeline/logFile", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//defer to close when you're done with it, not because you think it's idiomatic!
+	defer f.Close()
+	//set output of logs to f
+	log.SetOutput(f)
+	//test case
+	log.Println("waitForStartCommand")
 	message := new(types.Message)
 	connection, err := listener.Accept()
 	defer connection.Close()
@@ -123,6 +185,7 @@ func waitForStartCommand(listener net.Listener) {
 	decoder.Decode(message)
 	if message.Description == common.MsgStartWorker {
 		logMessage("Starting Pipeline")
+		log.Println("Starting Pipeline")
 	} else {
 		logMessage("Received invalid message from: " + message.Sender + " Expected: MsgStartWorker, and instead " +
 			" received " + strconv.Itoa(message.Description))
@@ -131,6 +194,17 @@ func waitForStartCommand(listener net.Listener) {
 
 // Run the worker routine
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc) {
+	//create your file with desired read/write permissions
+	f, err := os.OpenFile("/Users/bipashabanerjee/go/src/github.com/ffrankies/gopipeline/logFile", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//defer to close when you're done with it, not because you think it's idiomatic!
+	defer f.Close()
+	//set output of logs to f
+	log.SetOutput(f)
+	//test case
+	log.Println("run worker started")
 	StageID = options.StageID
 
 	// Listens for both the master and any other connection
