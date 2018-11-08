@@ -34,9 +34,21 @@ func (setList *SetList) Frequency(subset *Set) int {
 	return frequency
 }
 
+// ContainsSupersetOf checks whether or not the set list contains a set that is a superset of the given set
+func (setList *SetList) ContainsSupersetOf(subset *Set) bool {
+	for _, set := range setList.List {
+		if set.SupersetOf(subset) {
+			return true
+		}
+	}
+	return false
+}
+
 // Add a set to the set list
 func (setList *SetList) Add(set *Set) {
-	setList.List = append(setList.List, set)
+	if !setList.ContainsSupersetOf(set) {
+		setList.List = append(setList.List, set)
+	}
 }
 
 // Set of integers, along with the number of times the set appears in OriginalSet
@@ -73,11 +85,34 @@ func (set *Set) SupersetOf(otherSet *Set) bool {
 	return numElementsPresent == len(otherSet.Values)
 }
 
-// Add a value to the set, if it isn't already in the set
-func (set *Set) Add(value int) {
+// Add a value to the set, if it isn't already in the set. Returns a boolean that can be used to check whether the
+// value was added or not
+func (set *Set) Add(value int) bool {
 	if !set.Contains(value) {
 		set.Values = append(set.Values, value)
+		return true
 	}
+	return false
+}
+
+// Split returns a SetList containing each element in the set as a separate set
+func (set *Set) Split() *SetList {
+	splitSet := new(SetList)
+	for _, value := range set.Values {
+		newSet := new(Set)
+		newSet.Add(value)
+		splitSet.Add(newSet)
+	}
+	return splitSet
+}
+
+// Copy returns a copy of the current set
+func (set *Set) Copy() *Set {
+	copy := new(Set)
+	for _, value := range set.Values {
+		copy.Add(value)
+	}
+	return copy
 }
 
 // Generate a sets of numbers from which the apriori algorithm will select common subsets
@@ -106,32 +141,35 @@ func NextIteration(args ...interface{}) interface{} {
 	params := args[0].(Parameters)
 	currentSet := new(SetList)
 	if params.LenCurrentSetItems == 0 {
-		currentSet = FirstIteration(params.OriginalSet)
+		currentSet = BuildInitialSets(params.OriginalSet)
 	} else {
-		// TODO: Build multiple-value sets
+		currentSet = BuildSuccessiveSets(params.OriginalSet, params.CurrentSet)
 	}
 	params.CurrentSet = currentSet
 	params.LenCurrentSetItems++
 	return params
 }
 
-// FirstIteration creates the first iteration of sets, containing single values
-func FirstIteration(originalSetList *SetList) *SetList {
-	currentSetList := new(SetList)
-	presenceCheckerSet := new(Set)
-	for _, set := range originalSetList.List {
-		for _, value := range set.Values {
-			if !presenceCheckerSet.Contains(value) {
-				presenceCheckerSet.Add(value)
-				newSet := new(Set)
-				newSet.Add(value)
-				currentSetList.Add(newSet)
-			}
-		}
-	}
+// BuildInitialSets creates the first iteration of sets, containing single values
+func BuildInitialSets(originalSetList *SetList) *SetList {
+	uniqueValues := GetUniqueValues(originalSetList)
+	currentSetList := uniqueValues.Split()
 	averageFrequency := CalculateFrequencies(originalSetList, currentSetList)
 	currentSetList = FilterSetListByFrequency(currentSetList, averageFrequency)
 	return currentSetList
+}
+
+// GetUniqueValues returns a set containing all unique values in the given setList
+func GetUniqueValues(setList *SetList) *Set {
+	uniqueValueList := new(Set)
+	for _, set := range setList.List {
+		for _, value := range set.Values {
+			if !uniqueValueList.Contains(value) {
+				uniqueValueList.Add(value)
+			}
+		}
+	}
+	return uniqueValueList
 }
 
 // CalculateFrequencies for every set in the current set list, and returns the average frequency
@@ -145,7 +183,7 @@ func CalculateFrequencies(originalSetList *SetList, currentSetList *SetList) flo
 	return float64(sum) / float64(len(currentSetList.List))
 }
 
-//FilterSetListByFrequency filters out any set list whose frequency is less than the average
+// FilterSetListByFrequency filters out any set list whose frequency is less than the average
 func FilterSetListByFrequency(setList *SetList, averageFrequency float64) *SetList {
 	filteredSetList := new(SetList)
 	for _, set := range setList.List {
@@ -156,10 +194,29 @@ func FilterSetListByFrequency(setList *SetList, averageFrequency float64) *SetLi
 	return filteredSetList
 }
 
+// BuildSuccessiveSets builds sets that are 1 value larger than the current sets, and filters them based on their
+// frequency in the original list of sets
+func BuildSuccessiveSets(originalSetList *SetList, currentSetList *SetList) *SetList {
+	nextSetList := new(SetList)
+	uniqueValues := GetUniqueValues(originalSetList)
+	for _, set := range currentSetList.List {
+		for _, value := range uniqueValues.Values {
+			newSet := set.Copy()
+			if newSet.Add(value) {
+				nextSetList.Add(newSet)
+			}
+		}
+	}
+	averageFrequency := CalculateFrequencies(originalSetList, nextSetList)
+	nextSetList = FilterSetListByFrequency(nextSetList, averageFrequency)
+	return nextSetList
+}
+
 func main() {
 	functionList := make([]types.AnyFunc, 0)
-	// for i := 0; i < 5; i++ {
-	// 	functionList = append(functionList, hello)
-	// }
+	functionList = append(functionList, Generate)
+	for i := 0; i < 24; i++ {
+		functionList = append(functionList, NextIteration)
+	}
 	gopipeline.Run(functionList)
 }
