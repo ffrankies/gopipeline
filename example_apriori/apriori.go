@@ -54,9 +54,16 @@ func (setList *SetList) Add(set *Set) {
 
 // Set of integers, along with the number of times the set appears in OriginalSet
 type Set struct {
-	_present map[int]bool // Used for a presence check
-	Values   []int        // The values in the set
-	Count    int          // The number of times this set appears in the superset
+	present map[int]bool // Used for a presence check
+	Values  []int        // The values in the set
+	Count   int          // The number of times this set appears in the superset
+}
+
+// NewSet creates a new set with an initialized map
+func NewSet() *Set {
+	set := new(Set)
+	set.present = make(map[int]bool)
+	return set
 }
 
 // Equals checks if this set equals the other set
@@ -71,7 +78,7 @@ func (set *Set) Equals(otherSet *Set) bool {
 
 // Contains checks if the current set contains a given value
 func (set *Set) Contains(value int) bool {
-	_, isPresent := set._present[value]
+	_, isPresent := set.present[value]
 	return isPresent
 }
 
@@ -91,6 +98,7 @@ func (set *Set) SupersetOf(otherSet *Set) bool {
 func (set *Set) Add(value int) bool {
 	if !set.Contains(value) {
 		set.Values = append(set.Values, value)
+		set.present[value] = true
 		return true
 	}
 	return false
@@ -100,7 +108,7 @@ func (set *Set) Add(value int) bool {
 func (set *Set) Split() *SetList {
 	splitSet := new(SetList)
 	for _, value := range set.Values {
-		newSet := new(Set)
+		newSet := NewSet()
 		newSet.Add(value)
 		splitSet.Add(newSet)
 	}
@@ -109,7 +117,7 @@ func (set *Set) Split() *SetList {
 
 // Copy returns a copy of the current set
 func (set *Set) Copy() *Set {
-	copy := new(Set)
+	copy := NewSet()
 	for _, value := range set.Values {
 		copy.Add(value)
 	}
@@ -125,7 +133,7 @@ func Generate(args ...interface{}) interface{} {
 	numSets := 300
 	sets := new(SetList)
 	for i := 0; i < numSets; i++ {
-		set := new(Set)
+		set := NewSet()
 		values := randomGenerator.Perm(75)[:setSize]
 		for _, value := range values {
 			set.Add(value)
@@ -157,15 +165,19 @@ func NextIteration(args ...interface{}) interface{} {
 // BuildInitialSets creates the first iteration of sets, containing single values
 func BuildInitialSets(originalSetList *SetList) *SetList {
 	uniqueValues := GetUniqueValues(originalSetList)
+	fmt.Println("Unique values len: ", len(uniqueValues.Values))
 	currentSetList := uniqueValues.Split()
+	fmt.Println("current set list len: ", len(currentSetList.List))
 	averageFrequency := CalculateFrequencies(originalSetList, currentSetList)
+	fmt.Println("average frequency: ", averageFrequency)
 	currentSetList = FilterSetListByFrequency(currentSetList, averageFrequency)
+	fmt.Println("current set list len: ", len(currentSetList.List))
 	return currentSetList
 }
 
 // GetUniqueValues returns a set containing all unique values in the given setList
 func GetUniqueValues(setList *SetList) *Set {
-	uniqueValueList := new(Set)
+	uniqueValueList := NewSet()
 	for _, set := range setList.List {
 		for _, value := range set.Values {
 			if !uniqueValueList.Contains(value) {
