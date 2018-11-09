@@ -6,6 +6,12 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"os"
+	"os/signal"
+	"reflect"
+	"strconv"
+	"syscall"
+	"time"
 
 	"github.com/ffrankies/gopipeline/internal/common"
 	"github.com/ffrankies/gopipeline/types"
@@ -98,12 +104,19 @@ func receiveConnectionsGoRoutine(listener net.Listener) {
 // the worker sends it's listener address, parses the message as such, and then closes the connection.
 // In the future, it should check message type, and either do the above, or update a stage/node's statistics
 func handleConnectionFromWorker(connection net.Conn) {
+	gob.Register(types.MessageStageInfo{})
 	decoder := gob.NewDecoder(connection)
 	message := new(types.Message)
 	decoder.Decode(message)
-	if message.Description == common.MsgStageAddr {
-		nextNodeAddress := (message.Contents).(string)
-		pipelineStageList.Find(message.Sender).NetAddress = nextNodeAddress
+	if message.Description == common.MsgStageInfo {
+		fmt.Println("Type of contents = ", reflect.TypeOf(message.Contents))
+		stageInfo, ok := (message.Contents).(types.MessageStageInfo) //.(types.MessageStageInfo)
+		if ok {
+			pipelineStageList.Find(message.Sender).NetAddress = stageInfo.Address
+			pipelineStageList.Find(message.Sender).PID = stageInfo.PID
+		} else {
+			fmt.Println("Not OK!")
+		}
 	} else {
 		fmt.Println("Received invalid message type from", message.Sender)
 	}
@@ -111,8 +124,11 @@ func handleConnectionFromWorker(connection net.Conn) {
 }
 
 // buildWorkerCommand builds the command with which to start a worker
-func buildWorkerCommand(program string, masterAddress string, stageID string) string {
-	command := program + " -address=" + masterAddress + " -id=" + stageID + " worker"
+func buildWorkerCommand(program string, masterAddress string, stageID string, position int) string {
+	command := program + " -address=" + masterAddress
+	command += " -id=" + stageID
+	command += " -position=" + strconv.Itoa(position)
+	command += " worker"
 	return command
 }
 
@@ -143,6 +159,7 @@ func sendNextWorkerAddress(currentWorker *PipelineStage, nextWorker *PipelineSta
 	fmt.Println("Sent addr", nextWorker.NetAddress, "to:", currentWorker.NetAddress)
 }
 
+// startWorkers starts the worker at position 0, thereby kick-starting the pipeline
 func startWorkers() {
 	message := new(types.Message)
 	message.Sender = "0"
@@ -157,10 +174,31 @@ func startWorkers() {
 	fmt.Println("Started stage:", firstStage.StageID)
 }
 
+// setUpSignalHandler sets up a signal handler for clean exit on termination
+func setUpSignalHandler(config *Config) {
+	signalHandlerChannel := make(chan os.Signal, 1)
+	signal.Notify(signalHandlerChannel, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		for {
+			receivedSignal := <-signalHandlerChannel
+			fmt.Println("Received signal:", receivedSignal)
+			fmt.Println("Performing cleanup...")
+			pipelineStageList.WaitUntilAllListenerPortsUpdated()
+			for _, stage := range pipelineStageList.List {
+				sshConnection := NewSSHConnection(stage.Host, config.SSHUser, config.SSHPort)
+				command := "kill " + strconv.Itoa(stage.PID)
+				sshConnection.RunCommand(command)
+			}
+			os.Exit(0)
+		}
+	}()
+}
+
 // Run executes the main logic of the "master" node.
 // This involves setting up the pipeline stages, and starting worker processes on each node in the pipeline.
 func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	config := NewConfig(options.ConfigPath)
+	setUpSignalHandler(config)
 	fmt.Println("=====Doing initial scheduling=====")
 	matchStagesToNodes(functionList, config.NodeList)
 	masterAddress, err := startListener()
@@ -170,7 +208,7 @@ func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	fmt.Println("=====Starting workers=====")
 	for _, stage := range pipelineStageList.List {
 		sshConnection := NewSSHConnection(stage.Host, config.SSHUser, config.SSHPort)
-		command := buildWorkerCommand(options.Program, masterAddress, stage.StageID)
+		command := buildWorkerCommand(options.Program, masterAddress, stage.StageID, stage.Position)
 		fmt.Println("Running command:", command, "on node:", stage.Host)
 		go sshConnection.RunCommand(command)
 	}
@@ -181,6 +219,6 @@ func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	startWorkers()
 	// TODO(): Profit
 	for { // Scheduler should work in here
-		// Busy wait
+		time.Sleep(1 * time.Second) // Interrupts won't work in empty for loop because that doesn't give enough time
 	}
 }

@@ -4,24 +4,40 @@ import (
 	"encoding/gob"
 	"fmt"
 	"net"
+	"os"
+	"strconv"
 
 	"github.com/ffrankies/gopipeline/internal/common"
 	"github.com/ffrankies/gopipeline/types"
 )
 
-// sendAddressToMaster opens a connection to the master node, and sends the address of its listener
-func sendAddressToMaster(masterAddress string, myID string, myAddress string) {
+// StageID is the ID of this worker
+var StageID string
+
+func logMessage(message string) {
+	message = "Worker " + StageID + ": " + message
+	fmt.Println(message)
+}
+
+// sendInfoToMaster opens a connection to the master node, and sends the address of its listener and the pid of this
+// stage's worker process
+func sendInfoToMaster(masterAddress string, myID string, myAddress string) {
 	message := new(types.Message)
 	message.Sender = myID
-	message.Description = common.MsgStageAddr
-	message.Contents = myAddress
+	message.Description = common.MsgStageInfo
+	stageInfo := types.MessageStageInfo{Address: myAddress, PID: os.Getpid()}
+	message.Contents = stageInfo
 	connection, err := net.Dial("tcp", masterAddress)
 	defer connection.Close()
 	if err != nil {
 		panic(err)
 	}
+	gob.Register(types.MessageStageInfo{})
 	encoder := gob.NewEncoder(connection)
-	encoder.Encode(message)
+	err = encoder.Encode(message)
+	if err != nil {
+		panic(err)
+	}
 }
 
 // receiveAddressOfNextNode listens for a message on the listener, assumes it is from master and contains the address
@@ -38,10 +54,9 @@ func receiveAddressOfNextNode(listener net.Listener) string {
 	if message.Description == common.MsgNextStageAddr {
 		nextNodeAddress := (message.Contents).(string)
 		return nextNodeAddress
-	} else {
-		fmt.Println("Worker: Received invalid message from:", message.Sender)
-		return ""
 	}
+	logMessage("Received invalid message from " + message.Sender + " of type: " + strconv.Itoa(message.Description))
+	return ""
 }
 
 // runFirstStage runs the function of a worker running the first stage
@@ -53,7 +68,7 @@ func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myID st
 	encoder := gob.NewEncoder(connectionToNextWorker)
 	for {
 		message := new(types.Message)
-		result := functionList[0](message.Contents)
+		result := functionList[0]()
 		message.Sender = myID
 		message.Description = common.MsgStageResult
 		message.Contents = result
@@ -107,15 +122,16 @@ func waitForStartCommand(listener net.Listener) {
 	decoder := gob.NewDecoder(connection)
 	decoder.Decode(message)
 	if message.Description == common.MsgStartWorker {
-		fmt.Println("Starting pipeline")
+		logMessage("Starting Pipeline")
 	} else {
-		fmt.Println("Worker: Received invalid message from:", message.Sender, "Expected: MsgStartWorker, and instead",
-			"received", message.Description)
+		logMessage("Received invalid message from: " + message.Sender + " Expected: MsgStartWorker, and instead " +
+			" received " + strconv.Itoa(message.Description))
 	}
 }
 
 // Run the worker routine
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc) {
+	StageID = options.StageID
 
 	// Listens for both the master and any other connection
 	myAddress := common.GetOutboundIPAddressHack()
@@ -127,7 +143,7 @@ func Run(options *common.WorkerOptions, functionList []types.AnyFunc) {
 	// Sends my address as a struct data to the master.
 	myPortNumber := common.GetPortNumberFromListener(listener)
 	myNetAddress := common.CombineAddressAndPort(myAddress, myPortNumber)
-	sendAddressToMaster(options.MasterAddress, options.StageID, myNetAddress)
+	sendInfoToMaster(options.MasterAddress, options.StageID, myNetAddress)
 	isLastStage := options.Position == len(functionList)-1
 	var nextNodeAddress string
 	if !isLastStage {

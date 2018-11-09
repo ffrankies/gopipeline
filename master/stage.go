@@ -61,7 +61,7 @@ func (stageList *PipelineStageList) WaitUntilAllListenerPortsUpdated() {
 	for allUpdated == false {
 		allUpdated = true
 		for _, stage := range stageList.List {
-			if stage.NetAddress == "" {
+			if stage.NetAddress == "" || stage.PID == -1 {
 				allUpdated = false
 			}
 		}
@@ -74,6 +74,7 @@ type PipelineStage struct {
 	NetAddress string // The net address to which to
 	Position   int    // The Stage's position in the pipeline
 	StageID    string // The ID of this stage
+	PID        int    // The PID of the worker process running this stage
 }
 
 // NewPipelineStage creates a new PipelineStage object. On creation, we don't know the stage's NetAddress or Port, so
@@ -82,6 +83,7 @@ func newPipelineStage(host string, position int, stageID string) *PipelineStage 
 	pipelineStage := new(PipelineStage)
 	pipelineStage.Host = host
 	pipelineStage.NetAddress = ""
+	pipelineStage.PID = -1
 	pipelineStage.Position = position
 	pipelineStage.StageID = stageID
 	return pipelineStage
@@ -92,6 +94,7 @@ func (stage *PipelineStage) String() string {
 	pipelineStageString := "PipelineStage {\n"
 	pipelineStageString += "\tHost: " + stage.Host + "\n"
 	pipelineStageString += "\tNetAddress: " + stage.NetAddress + "\n"
+	pipelineStageString += "\tPID: " + strconv.Itoa(stage.PID) + "\n"
 	pipelineStageString += "\tPosition: " + strconv.Itoa(stage.Position) + "\n}"
 	pipelineStageString += "\tStageID: " + stage.StageID + "\n}"
 	return pipelineStageString
