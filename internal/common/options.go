@@ -22,6 +22,7 @@ func NewMasterOptions(program string) *MasterOptions {
 type WorkerOptions struct {
 	MasterAddress string // The internet address of the master node
 	Position      int    // The position of the worker process within the pipeline stages
+	StageID       string // The ID of the stage being run by this worker
 }
 
 // NewWorkerOptions parses the command-line flags for starting a new worker process and stores them in an
@@ -30,6 +31,7 @@ func NewWorkerOptions() *WorkerOptions {
 	options := new(WorkerOptions)
 	flag.StringVar(&options.MasterAddress, "address", "127.0.0.1",
 		"The internet address of the node running the master process")
+	flag.StringVar(&options.StageID, "id", "", "The ID of the stage to be executed")
 	flag.IntVar(&options.Position, "position", 0, "The position of the worker process within the pipeline stages")
 	flag.Parse()
 	return options
