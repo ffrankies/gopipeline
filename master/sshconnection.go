@@ -1,6 +1,7 @@
 package master
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net"
 	"os/user"
@@ -36,30 +37,20 @@ func NewSSHConnection(address string, remoteUser string, port int) *SSHConnectio
 	return sshConnection
 }
 
-// RunCommandAndWait runs a single command through the SSH Connection, and waits for it to exit
-func (conn *SSHConnection) RunCommandAndWait(command string) (output string, err error) {
-	session, err := conn.client.NewSession()
-	if err != nil {
-		return
-	}
-	defer session.Close()
-	outputBytes, err := session.Output(command)
-	if err != nil {
-		return
-	}
-	output = string(outputBytes)
-	return
-}
-
 // RunCommand runs a single command through the SSH Connection, does not wait for results
-func (conn *SSHConnection) RunCommand(command string) (err error) {
+func (conn *SSHConnection) RunCommand(command string) {
 	session, err := conn.client.NewSession()
 	if err != nil {
-		return
+		panic(err)
 	}
-	defer session.Close()
-	err = session.Run(command)
-	return
+	output, err := session.CombinedOutput(command)
+	fmt.Println(string(output))
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	if err := conn.Close(); err != nil {
+		panic(err)
+	}
 }
 
 // Close closes connection
