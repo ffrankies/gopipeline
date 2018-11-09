@@ -78,8 +78,12 @@ func (set *Set) Equals(otherSet *Set) bool {
 
 // Contains checks if the current set contains a given value
 func (set *Set) Contains(value int) bool {
-	_, isPresent := set.present[value]
-	return isPresent
+	for _, item := range set.Values {
+		if value == item {
+			return true
+		}
+	}
+	return false
 }
 
 // SupersetOf checks if the current set is a superset of another set
@@ -90,7 +94,8 @@ func (set *Set) SupersetOf(otherSet *Set) bool {
 			numElementsPresent++
 		}
 	}
-	return numElementsPresent == len(otherSet.Values)
+	isSupersetOf := numElementsPresent == len(otherSet.Values)
+	return isSupersetOf
 }
 
 // Add a value to the set, if it isn't already in the set. Returns a boolean that can be used to check whether the
@@ -158,20 +163,16 @@ func NextIteration(args ...interface{}) interface{} {
 	}
 	params.CurrentSet = currentSet
 	params.LenCurrentSetItems++
-	fmt.Println("Finished next iteration, with len:", len(currentSet.List))
+	fmt.Println("Finished next iteration, with len:", len(currentSet.List), "and setlen:", params.LenCurrentSetItems)
 	return params
 }
 
 // BuildInitialSets creates the first iteration of sets, containing single values
 func BuildInitialSets(originalSetList *SetList) *SetList {
 	uniqueValues := GetUniqueValues(originalSetList)
-	fmt.Println("Unique values len: ", len(uniqueValues.Values))
 	currentSetList := uniqueValues.Split()
-	fmt.Println("current set list len: ", len(currentSetList.List))
 	averageFrequency := CalculateFrequencies(originalSetList, currentSetList)
-	fmt.Println("average frequency: ", averageFrequency)
 	currentSetList = FilterSetListByFrequency(currentSetList, averageFrequency)
-	fmt.Println("current set list len: ", len(currentSetList.List))
 	return currentSetList
 }
 
