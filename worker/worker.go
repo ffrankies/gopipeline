@@ -61,17 +61,20 @@ func receiveAddressOfNextNode(listener net.Listener) string {
 
 // runFirstStage runs the function of a worker running the first stage
 func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myID string) {
+	fmt.Println("Running first stage")
 	connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
 	if err != nil {
 		panic(err)
 	}
 	encoder := gob.NewEncoder(connectionToNextWorker)
 	for {
+		fmt.Println("Starting computation...")
 		message := new(types.Message)
 		result := functionList[0]()
 		message.Sender = myID
 		message.Description = common.MsgStageResult
 		message.Contents = result
+		fmt.Println("Sending results...")
 		encoder.Encode(message)
 	}
 }
@@ -130,7 +133,8 @@ func waitForStartCommand(listener net.Listener) {
 }
 
 // Run the worker routine
-func Run(options *common.WorkerOptions, functionList []types.AnyFunc) {
+func Run(options *common.WorkerOptions, functionList []types.AnyFunc, registerType interface{}) {
+	gob.Register(registerType)
 	StageID = options.StageID
 
 	// Listens for both the master and any other connection
