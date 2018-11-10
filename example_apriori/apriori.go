@@ -2,7 +2,6 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -145,25 +144,20 @@ func Generate(args ...interface{}) interface{} {
 		}
 		sets.Add(set)
 	}
-	fmt.Println("Generated some input of len:", len(sets.List))
 	return Parameters{OriginalSet: sets, LenCurrentSetItems: 0, TargetSetLength: 25}
 }
 
 // NextIteration creates the next iteration of sets for the a-priori algorithm
 func NextIteration(args ...interface{}) interface{} {
-	fmt.Println("Starting next iteration...")
 	params := args[0].(Parameters)
 	currentSet := new(SetList)
 	if params.LenCurrentSetItems == 0 {
-		fmt.Println("Building initial sets...")
 		currentSet = BuildInitialSets(params.OriginalSet)
 	} else {
-		fmt.Println("Building successive sets...")
 		currentSet = BuildSuccessiveSets(params.OriginalSet, params.CurrentSet)
 	}
 	params.CurrentSet = currentSet
 	params.LenCurrentSetItems++
-	fmt.Println("Finished next iteration, with len:", len(currentSet.List), "and setlen:", params.LenCurrentSetItems)
 	return params
 }
 
@@ -232,7 +226,7 @@ func BuildSuccessiveSets(originalSetList *SetList, currentSetList *SetList) *Set
 func main() {
 	functionList := make([]types.AnyFunc, 0)
 	functionList = append(functionList, Generate)
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 10; i++ {
 		functionList = append(functionList, NextIteration)
 	}
 	gopipeline.Run(functionList, Parameters{})
