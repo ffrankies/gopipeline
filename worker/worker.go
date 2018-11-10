@@ -60,57 +60,82 @@ func receiveAddressOfNextNode(listener net.Listener) string {
 }
 
 // runFirstStage runs the function of a worker running the first stage
-func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myID string) {
-	fmt.Println("Running first stage")
-	connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
-	if err != nil {
-		panic(err)
-	}
-	encoder := gob.NewEncoder(connectionToNextWorker)
+func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myID string, registerType interface{}) {
 	for {
-		fmt.Println("Starting computation...")
-		message := new(types.Message)
-		result := functionList[0]()
-		message.Sender = myID
-		message.Description = common.MsgStageResult
-		message.Contents = result
-		fmt.Println("Sending results...")
-		encoder.Encode(message)
+		connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
+		if err != nil {
+			panic(err)
+		}
+		encoder := gob.NewEncoder(connectionToNextWorker)
+		for {
+			logMessage("Starting computation...")
+			gob.Register(registerType)
+			message := new(types.Message)
+			result := functionList[0]()
+			message.Sender = myID
+			message.Description = common.MsgStageResult
+			message.Contents = result
+			err = encoder.Encode(message)
+			if err != nil {
+				logMessage(err.Error())
+				break
+			}
+			logMessage("Sent results...")
+		}
 	}
 }
 
 // runLastStage runs the function of a worker running the last stage
-func runLastStage(listener net.Listener, functionList []types.AnyFunc) {
-	connectionFromPreviousWorker, err := listener.Accept()
-	if err != nil {
-		panic(err)
-	}
-	decoder := gob.NewDecoder(connectionFromPreviousWorker)
+func runLastStage(listener net.Listener, functionList []types.AnyFunc, registerType interface{}) {
 	for {
-		message := new(types.Message)
-		decoder.Decode(message)
-		functionList[len(functionList)-1](message.Contents)
+		connectionFromPreviousWorker, err := listener.Accept()
+		if err != nil {
+			panic(err)
+		}
+		decoder := gob.NewDecoder(connectionFromPreviousWorker)
+		for {
+			logMessage("Starting last stage computation...")
+			gob.Register(registerType)
+			message := new(types.Message)
+			if err := decoder.Decode(message); err != nil {
+				logMessage(err.Error())
+				break
+			}
+			functionList[len(functionList)-1](message.Contents)
+			logMessage("Ending last stage computation...")
+		}
 	}
 }
 
 // runIntermediateStage runs the function of a worker running an intermediate stage
 func runIntermediateStage(listener net.Listener, nextNodeAddress string, functionList []types.AnyFunc, myID string,
-	position int) {
-	connectionFromPreviousWorker, err := listener.Accept()
-	if err != nil {
-		panic(err)
-	}
-	connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
-	decoder := gob.NewDecoder(connectionFromPreviousWorker)
-	encoder := gob.NewEncoder(connectionToNextWorker)
+	position int, registerType interface{}) {
 	for {
-		message := new(types.Message)
-		decoder.Decode(message)
-		result := functionList[position](message.Contents)
-		message.Sender = myID
-		message.Description = common.MsgStageResult
-		message.Contents = result
-		encoder.Encode(message)
+		connectionFromPreviousWorker, err := listener.Accept()
+		if err != nil {
+			panic(err)
+		}
+		connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
+		decoder := gob.NewDecoder(connectionFromPreviousWorker)
+		encoder := gob.NewEncoder(connectionToNextWorker)
+		for {
+			logMessage("Starting intermediate computation...")
+			gob.Register(registerType)
+			message := new(types.Message)
+			if err := decoder.Decode(message); err != nil {
+				logMessage(err.Error())
+				break
+			}
+			result := functionList[position](message.Contents)
+			message.Sender = myID
+			message.Description = common.MsgStageResult
+			message.Contents = result
+			if err := encoder.Encode(message); err != nil {
+				logMessage(err.Error())
+				break
+			}
+			logMessage("Ending intermediate computation...")
+		}
 	}
 }
 
@@ -134,7 +159,6 @@ func waitForStartCommand(listener net.Listener) {
 
 // Run the worker routine
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc, registerType interface{}) {
-	gob.Register(registerType)
 	StageID = options.StageID
 
 	// Listens for both the master and any other connection
@@ -156,10 +180,10 @@ func Run(options *common.WorkerOptions, functionList []types.AnyFunc, registerTy
 	// Get data from previous worker, process it, and send results to the next worker
 	if options.Position == 0 {
 		waitForStartCommand(listener)
-		runFirstStage(nextNodeAddress, functionList, options.StageID)
+		runFirstStage(nextNodeAddress, functionList, options.StageID, registerType)
 	}
 	if isLastStage {
-		runLastStage(listener, functionList)
+		runLastStage(listener, functionList, registerType)
 	}
-	runIntermediateStage(listener, nextNodeAddress, functionList, options.StageID, options.Position)
+	runIntermediateStage(listener, nextNodeAddress, functionList, options.StageID, options.Position, registerType)
 }
