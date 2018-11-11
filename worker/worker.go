@@ -62,6 +62,26 @@ func receiveAddressOfNextNode(listener net.Listener) string {
 	return ""
 }
 
+// runStage chooses the correct stage function to run, and runs it
+func runStage(options *common.WorkerOptions, functionList []types.AnyFunc, listener net.Listener,
+	registerType interface{}) {
+
+	isLastStage := options.Position == len(functionList)-1
+	var nextNodeAddress string
+	if !isLastStage {
+		nextNodeAddress = receiveAddressOfNextNode(listener)
+	}
+	// Get data from previous worker, process it, and send results to the next worker
+	if options.Position == 0 {
+		waitForStartCommand(listener)
+		runFirstStage(nextNodeAddress, functionList, options.StageID, registerType)
+	}
+	if isLastStage {
+		runLastStage(listener, functionList, registerType)
+	}
+	runIntermediateStage(listener, nextNodeAddress, functionList, options.StageID, options.Position, registerType)
+}
+
 // Run the worker routine
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc, registerType interface{}) {
 	StageID = options.StageID
@@ -77,18 +97,5 @@ func Run(options *common.WorkerOptions, functionList []types.AnyFunc, registerTy
 	myPortNumber := common.GetPortNumberFromListener(listener)
 	myNetAddress := common.CombineAddressAndPort(myAddress, myPortNumber)
 	sendInfoToMaster(options.MasterAddress, options.StageID, myNetAddress)
-	isLastStage := options.Position == len(functionList)-1
-	var nextNodeAddress string
-	if !isLastStage {
-		nextNodeAddress = receiveAddressOfNextNode(listener)
-	}
-	// Get data from previous worker, process it, and send results to the next worker
-	if options.Position == 0 {
-		waitForStartCommand(listener)
-		runFirstStage(nextNodeAddress, functionList, options.StageID, registerType)
-	}
-	if isLastStage {
-		runLastStage(listener, functionList, registerType)
-	}
-	runIntermediateStage(listener, nextNodeAddress, functionList, options.StageID, options.Position, registerType)
+	runStage(options, functionList, listener, registerType)
 }
