@@ -4,7 +4,6 @@ import (
 	"encoding/gob"
 	"net"
 
-	"github.com/ffrankies/gopipeline/internal/common"
 	"github.com/ffrankies/gopipeline/types"
 )
 
@@ -27,10 +26,7 @@ func runIntermediateStage(listener net.Listener, nextNodeAddress string, functio
 				logMessage(err.Error())
 				break
 			}
-			result := functionList[position](message.Contents)
-			message.Sender = myID
-			message.Description = common.MsgStageResult
-			message.Contents = result
+			message = executeStage(functionList, position, myID, message.Contents)
 			if err := encoder.Encode(message); err != nil {
 				logMessage(err.Error())
 				break

@@ -23,7 +23,7 @@ func runLastStage(listener net.Listener, functionList []types.AnyFunc, registerT
 				logMessage(err.Error())
 				break
 			}
-			functionList[len(functionList)-1](message.Contents)
+			executeStage(functionList, len(functionList)-1, "", message.Contents)
 			logMessage("Ending last stage computation...")
 		}
 	}

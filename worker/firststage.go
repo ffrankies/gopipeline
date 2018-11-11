@@ -38,11 +38,7 @@ func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myID st
 		for {
 			logMessage("Starting computation...")
 			gob.Register(registerType)
-			message := new(types.Message)
-			result := functionList[0]()
-			message.Sender = myID
-			message.Description = common.MsgStageResult
-			message.Contents = result
+			message := executeStage(functionList, 0, myID, nil)
 			err = encoder.Encode(message)
 			if err != nil {
 				logMessage(err.Error())
