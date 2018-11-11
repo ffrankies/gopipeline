@@ -14,6 +14,9 @@ import (
 // StageID is the ID of this worker
 var StageID string
 
+// WorkerStatistics is the performance statistics of this worker process
+var WorkerStatistics = new(types.WorkerStats)
+
 func logMessage(message string) {
 	message = "Worker " + StageID + ": " + message
 	fmt.Println(message)
@@ -57,104 +60,6 @@ func receiveAddressOfNextNode(listener net.Listener) string {
 	}
 	logMessage("Received invalid message from " + message.Sender + " of type: " + strconv.Itoa(message.Description))
 	return ""
-}
-
-// runFirstStage runs the function of a worker running the first stage
-func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myID string, registerType interface{}) {
-	for {
-		connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
-		if err != nil {
-			panic(err)
-		}
-		encoder := gob.NewEncoder(connectionToNextWorker)
-		for {
-			logMessage("Starting computation...")
-			gob.Register(registerType)
-			message := new(types.Message)
-			result := functionList[0]()
-			message.Sender = myID
-			message.Description = common.MsgStageResult
-			message.Contents = result
-			err = encoder.Encode(message)
-			if err != nil {
-				logMessage(err.Error())
-				break
-			}
-			logMessage("Sent results...")
-		}
-	}
-}
-
-// runLastStage runs the function of a worker running the last stage
-func runLastStage(listener net.Listener, functionList []types.AnyFunc, registerType interface{}) {
-	for {
-		connectionFromPreviousWorker, err := listener.Accept()
-		if err != nil {
-			panic(err)
-		}
-		decoder := gob.NewDecoder(connectionFromPreviousWorker)
-		for {
-			logMessage("Starting last stage computation...")
-			gob.Register(registerType)
-			message := new(types.Message)
-			if err := decoder.Decode(message); err != nil {
-				logMessage(err.Error())
-				break
-			}
-			functionList[len(functionList)-1](message.Contents)
-			logMessage("Ending last stage computation...")
-		}
-	}
-}
-
-// runIntermediateStage runs the function of a worker running an intermediate stage
-func runIntermediateStage(listener net.Listener, nextNodeAddress string, functionList []types.AnyFunc, myID string,
-	position int, registerType interface{}) {
-	for {
-		connectionFromPreviousWorker, err := listener.Accept()
-		if err != nil {
-			panic(err)
-		}
-		connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
-		decoder := gob.NewDecoder(connectionFromPreviousWorker)
-		encoder := gob.NewEncoder(connectionToNextWorker)
-		for {
-			logMessage("Starting intermediate computation...")
-			gob.Register(registerType)
-			message := new(types.Message)
-			if err := decoder.Decode(message); err != nil {
-				logMessage(err.Error())
-				break
-			}
-			result := functionList[position](message.Contents)
-			message.Sender = myID
-			message.Description = common.MsgStageResult
-			message.Contents = result
-			if err := encoder.Encode(message); err != nil {
-				logMessage(err.Error())
-				break
-			}
-			logMessage("Ending intermediate computation...")
-		}
-	}
-}
-
-// waitForStartCommand tells a worker to wait for
-func waitForStartCommand(listener net.Listener) {
-	message := new(types.Message)
-	connection, err := listener.Accept()
-	defer connection.Close()
-	if err != nil {
-		panic(err)
-	}
-	decoder := gob.NewDecoder(connection)
-	decoder.Decode(message)
-	if message.Description == common.MsgStartWorker {
-		logMessage("Starting Pipeline")
-	} else {
-		logMessage("Received invalid message from: " + message.Sender + " Expected: MsgStartWorker, and instead " +
-			" received " + strconv.Itoa(message.Description))
-	}
 }
 
 // Run the worker routine
