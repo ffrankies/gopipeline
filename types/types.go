@@ -1,6 +1,8 @@
 // Package types contains types needed by packages using the gopipeline library
 package types
 
+import "strconv"
+
 // AnyFunc is any function with any number of input parameters and a single return value
 type AnyFunc func(...interface{}) interface{}
 
@@ -23,4 +25,14 @@ type WorkerStats struct {
 	WorkerMemoryUsage   uint64 // The amount of memory used by the worker process (from /proc/[pid]/statm/Size)
 	ExecutionTime       uint64 // The amount of time to process the worker's stage
 	Backlog             int    // The number of unprocessed items in the input queue
+}
+
+func (workerStats *WorkerStats) String() string {
+	workerStatsString := "Worker stats: {"
+	workerStatsString += " NodeAvailableMemory: " + strconv.FormatUint(workerStats.NodeAvailableMemory, 10)
+	workerStatsString += " WorkerMemoryUsage: " + strconv.FormatUint(workerStats.WorkerMemoryUsage, 10)
+	workerStatsString += " ExecutionTime: " + strconv.FormatUint(workerStats.ExecutionTime, 10)
+	workerStatsString += " Backlog: " + strconv.Itoa(workerStats.Backlog)
+	workerStatsString += " }"
+	return workerStatsString
 }
