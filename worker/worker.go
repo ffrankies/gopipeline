@@ -86,6 +86,8 @@ func receiveAddressOfNextNode(listener net.Listener) string {
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc, registerType interface{}) {
 	StageID = options.StageID
 
+	go getStatsGoRoutine()
+
 	// Listens for both the master and any other connection
 	myAddress := common.GetOutboundIPAddressHack()
 	listener, err := net.Listen("tcp", myAddress+":0")
