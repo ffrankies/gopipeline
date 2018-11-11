@@ -31,10 +31,10 @@ func sendInfoToMaster(masterAddress string, myID string, myAddress string) {
 	stageInfo := types.MessageStageInfo{Address: myAddress, PID: os.Getpid()}
 	message.Contents = stageInfo
 	connection, err := net.Dial("tcp", masterAddress)
-	defer connection.Close()
 	if err != nil {
 		panic(err)
 	}
+	defer connection.Close()
 	gob.Register(types.MessageStageInfo{})
 	encoder := gob.NewEncoder(connection)
 	err = encoder.Encode(message)
@@ -86,7 +86,7 @@ func receiveAddressOfNextNode(listener net.Listener) string {
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc, registerType interface{}) {
 	StageID = options.StageID
 
-	go getStatsGoRoutine()
+	go trackStatsGoroutine()
 
 	// Listens for both the master and any other connection
 	myAddress := common.GetOutboundIPAddressHack()
