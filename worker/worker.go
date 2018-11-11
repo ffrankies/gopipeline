@@ -43,25 +43,6 @@ func sendInfoToMaster(masterAddress string, myID string, myAddress string) {
 	}
 }
 
-// receiveAddressOfNextNode listens for a message on the listener, assumes it is from master and contains the address
-// of the next code, and parses it as such
-func receiveAddressOfNextNode(listener net.Listener) string {
-	message := new(types.Message)
-	connection, err := listener.Accept()
-	defer connection.Close()
-	if err != nil {
-		panic(err)
-	}
-	decoder := gob.NewDecoder(connection)
-	decoder.Decode(message)
-	if message.Description == common.MsgNextStageAddr {
-		nextNodeAddress := (message.Contents).(string)
-		return nextNodeAddress
-	}
-	logMessage("Received invalid message from " + message.Sender + " of type: " + strconv.Itoa(message.Description))
-	return ""
-}
-
 // runStage chooses the correct stage function to run, and runs it
 func runStage(options *common.WorkerOptions, functionList []types.AnyFunc, listener net.Listener,
 	registerType interface{}) {
@@ -80,6 +61,25 @@ func runStage(options *common.WorkerOptions, functionList []types.AnyFunc, liste
 		runLastStage(listener, functionList, registerType)
 	}
 	runIntermediateStage(listener, nextNodeAddress, functionList, options.StageID, options.Position, registerType)
+}
+
+// receiveAddressOfNextNode listens for a message on the listener, assumes it is from master and contains the address
+// of the next code, and parses it as such
+func receiveAddressOfNextNode(listener net.Listener) string {
+	message := new(types.Message)
+	connection, err := listener.Accept()
+	defer connection.Close()
+	if err != nil {
+		panic(err)
+	}
+	decoder := gob.NewDecoder(connection)
+	decoder.Decode(message)
+	if message.Description == common.MsgNextStageAddr {
+		nextNodeAddress := (message.Contents).(string)
+		return nextNodeAddress
+	}
+	logMessage("Received invalid message from " + message.Sender + " of type: " + strconv.Itoa(message.Description))
+	return ""
 }
 
 // Run the worker routine
