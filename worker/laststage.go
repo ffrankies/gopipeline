@@ -17,13 +17,11 @@ func runLastStage(listener net.Listener, functionList []types.AnyFunc, registerT
 		decoder := gob.NewDecoder(connectionFromPreviousWorker)
 		for {
 			logMessage("Starting last stage computation...")
-			gob.Register(registerType)
-			message := new(types.Message)
-			if err := decoder.Decode(message); err != nil {
-				logMessage(err.Error())
+			input, err := decodeInput(decoder, registerType)
+			if err != nil {
 				break
 			}
-			executeStage(functionList, len(functionList)-1, "", message.Contents)
+			executeStage(functionList, len(functionList)-1, "", input)
 			logMessage("Ending last stage computation...")
 		}
 	}

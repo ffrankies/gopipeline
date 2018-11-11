@@ -20,13 +20,11 @@ func runIntermediateStage(listener net.Listener, nextNodeAddress string, functio
 		encoder := gob.NewEncoder(connectionToNextWorker)
 		for {
 			logMessage("Starting intermediate computation...")
-			gob.Register(registerType)
-			message := new(types.Message)
-			if err := decoder.Decode(message); err != nil {
-				logMessage(err.Error())
+			input, err := decodeInput(decoder, registerType)
+			if err != nil {
 				break
 			}
-			message = executeStage(functionList, position, myID, message.Contents)
+			message := executeStage(functionList, position, myID, input)
 			if err := encoder.Encode(message); err != nil {
 				logMessage(err.Error())
 				break

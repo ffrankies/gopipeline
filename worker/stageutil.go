@@ -1,9 +1,23 @@
 package worker
 
 import (
+	"encoding/gob"
+
 	"github.com/ffrankies/gopipeline/internal/common"
 	"github.com/ffrankies/gopipeline/types"
 )
+
+// decodeInput decodes input from a previous stage
+func decodeInput(decoder *gob.Decoder, registerType interface{}) (input interface{}, err error) {
+	gob.Register(registerType)
+	message := new(types.Message)
+	err = decoder.Decode(message)
+	if err != nil {
+		logMessage(err.Error())
+	}
+	input = message.Contents
+	return
+}
 
 // executeStage executes the function this stage is responsible for, and returns the result as a message
 func executeStage(functionList []types.AnyFunc, position int, stageID string, input interface{}) *types.Message {
