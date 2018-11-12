@@ -28,7 +28,7 @@ func getProcessType() (processType string, err error) {
 
 // Run runs either the master or the worker stage on a single node. Also parses the command-line arguments needed for
 // the worker and/or master
-func Run(functionList []types.AnyFunc) {
+func Run(functionList []types.AnyFunc, registerType interface{}) {
 	program := os.Args[0]
 	processType, err := getProcessType()
 	if err != nil {
@@ -41,7 +41,7 @@ func Run(functionList []types.AnyFunc) {
 	}
 	if processType == "worker" {
 		options := common.NewWorkerOptions()
-		worker.Run(options, functionList)
+		worker.Run(options, functionList, registerType)
 		return
 	}
 }

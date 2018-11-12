@@ -1,21 +1,32 @@
 GOPIPELINE := github.com/ffrankies/gopipeline
 EXAMPLE := $(GOPIPELINE)/example
+APRIORI := $(GOPIPELINE)/example_apriori
 
-.PHONY: example
-example:
-	go install $(EXAMPLE)
-	example master
+.PHONY: install install_example install_apriori example apriori local_example local_apriori dist_example dist_apriori
 
-.PHONY: local_example
-local_example:
-	go install $(EXAMPLE)
-	example -config=GoPipeline.localconfig.yaml master
-
-.PHONY: dist_example
-dist_example:
-	go install $(EXAMPLE)
-	example -config=GoPipeline.distconfig.yaml master
-
-.PHONY: install
 install:
 	go install $(GOPIPELINE)
+
+install_example:
+	go install $(EXAMPLE)
+
+install_apriori:
+	go install $(APRIORI)
+
+example: install_example
+	example master
+
+local_example: install_example
+	example -config=GoPipeline.localconfig.yaml master
+
+dist_example: install_example
+	example -config=GoPipeline.distconfig.yaml master
+
+apriori: install_apriori
+	example_apriori master
+
+local_apriori: install_apriori
+	example_apriori -config=GoPipeline.localconfig.yaml master
+
+dist_apriori: install_apriori
+	example_apriori -config=GoPipeline.distconfig.yaml master
