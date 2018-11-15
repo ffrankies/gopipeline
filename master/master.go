@@ -4,75 +4,17 @@ package master
 import (
 	"encoding/gob"
 	"fmt"
-	"math"
 	"net"
 	"os"
 	"os/signal"
 	"reflect"
 	"strconv"
 	"syscall"
-	"time"
 
 	"github.com/ffrankies/gopipeline/internal/common"
+	"github.com/ffrankies/gopipeline/scheduler"
 	"github.com/ffrankies/gopipeline/types"
 )
-
-// The list of pipeline stages
-var pipelineStageList = NewPipelineStageList()
-
-// The list of pipeline nodes
-var pipelineNodeList []*PipelineNode
-
-// Matches pipeline stages (functions) to the nodes on which they will run.
-// The algorithm tries to spread the functions out among the nodes, but if that isn't possible
-// (there are more functions than nodes), it will automatically bunch functions together.
-func matchStagesToNodes(functionList []types.AnyFunc, nodeList []string) {
-	density := calculateFunctionDensity(functionList, nodeList)
-	counter := 0
-	nodeIndex := 0
-	for _, function := range functionList {
-		assignStageToNode(function, nodeList[nodeIndex])
-		counter++
-		if counter == density {
-			nodeIndex++
-			counter = 0
-			density = calculateFunctionDensity(functionList, nodeList)
-		}
-	}
-}
-
-// calculateFunctionDensity calculates the initial function density in the pipeline
-func calculateFunctionDensity(functionList []types.AnyFunc, nodeList []string) int {
-	numFunctions := len(functionList) - pipelineStageList.Length()
-	numNodes := len(nodeList) - len(pipelineNodeList)
-	density := math.Ceil(float64(numFunctions) / float64(numNodes))
-	return int(density)
-}
-
-// assignStageToNode assigns a single pipeline stage (function) to a single node
-func assignStageToNode(function types.AnyFunc, nodeAddress string) {
-	pipelineNode, foundInList := findNode(nodeAddress)
-	pipelineStage := pipelineStageList.AddStage(nodeAddress, pipelineStageList.Length())
-	pipelineNode.AddStage(pipelineStage)
-	if foundInList == false {
-		pipelineNodeList = append(pipelineNodeList, pipelineNode)
-	}
-}
-
-// findNode finds a particular PipelineNode in the pipelineNodeList. If the Node is not found,
-// findNode creates a new PipelineNode
-func findNode(nodeAddress string) (pipelineNode *PipelineNode, foundInList bool) {
-	for _, node := range pipelineNodeList {
-		if node.Address == nodeAddress {
-			pipelineNode = node
-			foundInList = true
-			return
-		}
-	}
-	pipelineNode = NewPipelineNode(nodeAddress, len(pipelineNodeList))
-	foundInList = false
-	return
-}
 
 // startListener creates and starts a listener that listens for connections from workers. For each connection, it
 // starts a goroutine that reads the messages from the connection.
@@ -112,8 +54,8 @@ func handleConnectionFromWorker(connection net.Conn) {
 		fmt.Println("Type of contents = ", reflect.TypeOf(message.Contents))
 		stageInfo, ok := (message.Contents).(types.MessageStageInfo) //.(types.MessageStageInfo)
 		if ok {
-			pipelineStageList.Find(message.Sender).NetAddress = stageInfo.Address
-			pipelineStageList.Find(message.Sender).PID = stageInfo.PID
+			scheduler.PipelineStageList.Find(message.Sender).NetAddress = stageInfo.Address
+			scheduler.PipelineStageList.Find(message.Sender).PID = stageInfo.PID
 		} else {
 			fmt.Println("Not OK!")
 		}
@@ -136,14 +78,14 @@ func buildWorkerCommand(program string, masterAddress string, stageID string, po
 // of the next worker in the pipeline
 func establishWorkerCommunication(numPositions int) {
 	for position := 1; position < numPositions; position++ {
-		nextWorker := pipelineStageList.FindByPosition(position)
-		currentWorker := pipelineStageList.FindByPosition(position - 1)
+		nextWorker := scheduler.PipelineStageList.FindByPosition(position)
+		currentWorker := scheduler.PipelineStageList.FindByPosition(position - 1)
 		sendNextWorkerAddress(currentWorker, nextWorker)
 	}
 }
 
 // sendNextWorkerAddress sends the next worker's address to the given worker
-func sendNextWorkerAddress(currentWorker *PipelineStage, nextWorker *PipelineStage) {
+func sendNextWorkerAddress(currentWorker *types.PipelineStage, nextWorker *types.PipelineStage) {
 	message := new(types.Message)
 	message.Sender = "0"
 	message.Description = common.MsgNextStageAddr
@@ -164,7 +106,7 @@ func startWorkers() {
 	message := new(types.Message)
 	message.Sender = "0"
 	message.Description = common.MsgStartWorker
-	firstStage := pipelineStageList.FindByPosition(0)
+	firstStage := scheduler.PipelineStageList.FindByPosition(0)
 	connection, err := net.Dial("tcp", firstStage.NetAddress)
 	if err != nil {
 		panic(err)
@@ -183,8 +125,8 @@ func setUpSignalHandler(config *Config) {
 			receivedSignal := <-signalHandlerChannel
 			fmt.Println("Received signal:", receivedSignal)
 			fmt.Println("Performing cleanup...")
-			pipelineStageList.WaitUntilAllListenerPortsUpdated()
-			for _, stage := range pipelineStageList.List {
+			scheduler.PipelineStageList.WaitUntilAllListenerPortsUpdated()
+			for _, stage := range scheduler.PipelineStageList.List {
 				sshConnection := NewSSHConnection(stage.Host, config.SSHUser, config.SSHPort)
 				command := "kill " + strconv.Itoa(stage.PID)
 				sshConnection.RunCommand(command)
@@ -200,25 +142,22 @@ func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	config := NewConfig(options.ConfigPath)
 	setUpSignalHandler(config)
 	fmt.Println("=====Doing initial scheduling=====")
-	matchStagesToNodes(functionList, config.NodeList)
+	scheduler.Static(functionList, config.NodeList)
 	masterAddress, err := startListener()
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println("=====Starting workers=====")
-	for _, stage := range pipelineStageList.List {
+	for _, stage := range scheduler.PipelineStageList.List {
 		sshConnection := NewSSHConnection(stage.Host, config.SSHUser, config.SSHPort)
 		command := buildWorkerCommand(options.Program, masterAddress, stage.StageID, stage.Position)
 		fmt.Println("Running command:", command, "on node:", stage.Host)
 		go sshConnection.RunCommand(command)
 	}
 	fmt.Println("=====Waiting for workers to send their net addresses=====")
-	pipelineStageList.WaitUntilAllListenerPortsUpdated()
+	scheduler.PipelineStageList.WaitUntilAllListenerPortsUpdated()
 	fmt.Println("=====Setting up communication between workers=====")
 	establishWorkerCommunication(len(functionList))
 	startWorkers()
-	// TODO(): Profit
-	for { // Scheduler should work in here
-		time.Sleep(1 * time.Second) // Interrupts won't work in empty for loop because that doesn't give enough time
-	}
+	scheduler.Dynamic()
 }

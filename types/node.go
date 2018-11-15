@@ -1,4 +1,4 @@
-package master
+package types
 
 // PipelineNode struct refers to a computational PipelineNode. A PipelineNode can be assigned multiple functions, or pipeline stages.
 type PipelineNode struct {
