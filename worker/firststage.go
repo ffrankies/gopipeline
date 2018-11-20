@@ -11,6 +11,7 @@ import (
 
 // waitForStartCommand tells a worker to wait for
 func waitForStartCommand(listener net.Listener) {
+	logPrint("Waiting for the start command")
 	message := new(types.Message)
 	connection, err := listener.Accept()
 	defer connection.Close()

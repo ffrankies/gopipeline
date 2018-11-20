@@ -67,7 +67,7 @@ func handleConnectionFromWorker(connection net.Conn) {
 
 // buildWorkerCommand builds the command with which to start a worker
 func buildWorkerCommand(program string, masterAddress string, stageID string, position int) string {
-	command := program + " -address=" + masterAddress
+	command := "/Users/bipashabanerjee/go/bin/" + program + " -address=" + masterAddress
 	command += " -id=" + stageID
 	command += " -position=" + strconv.Itoa(position)
 	command += " worker"
