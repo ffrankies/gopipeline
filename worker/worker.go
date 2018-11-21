@@ -14,6 +14,9 @@ import (
 // StageID is the ID of this worker
 var StageID string
 
+// WorkerStatistics is the performance statistics of this worker process
+var WorkerStatistics = new(types.WorkerStats)
+
 func logMessage(message string) {
 	message = "Worker " + StageID + ": " + message
 	fmt.Println(message)
@@ -28,16 +31,36 @@ func sendInfoToMaster(masterAddress string, myID string, myAddress string) {
 	stageInfo := types.MessageStageInfo{Address: myAddress, PID: os.Getpid()}
 	message.Contents = stageInfo
 	connection, err := net.Dial("tcp", masterAddress)
-	defer connection.Close()
 	if err != nil {
 		panic(err)
 	}
+	defer connection.Close()
 	gob.Register(types.MessageStageInfo{})
 	encoder := gob.NewEncoder(connection)
 	err = encoder.Encode(message)
 	if err != nil {
 		panic(err)
 	}
+}
+
+// runStage chooses the correct stage function to run, and runs it
+func runStage(options *common.WorkerOptions, functionList []types.AnyFunc, listener net.Listener,
+	registerType interface{}) {
+
+	isLastStage := options.Position == len(functionList)-1
+	var nextNodeAddress string
+	if !isLastStage {
+		nextNodeAddress = receiveAddressOfNextNode(listener)
+	}
+	// Get data from previous worker, process it, and send results to the next worker
+	if options.Position == 0 {
+		waitForStartCommand(listener)
+		runFirstStage(nextNodeAddress, functionList, options.StageID, registerType)
+	}
+	if isLastStage {
+		runLastStage(listener, functionList, registerType)
+	}
+	runIntermediateStage(listener, nextNodeAddress, functionList, options.StageID, options.Position, registerType)
 }
 
 // receiveAddressOfNextNode listens for a message on the listener, assumes it is from master and contains the address
@@ -59,107 +82,11 @@ func receiveAddressOfNextNode(listener net.Listener) string {
 	return ""
 }
 
-// runFirstStage runs the function of a worker running the first stage
-func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myID string, registerType interface{}) {
-	for {
-		connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
-		if err != nil {
-			panic(err)
-		}
-		encoder := gob.NewEncoder(connectionToNextWorker)
-		for {
-			logMessage("Starting computation...")
-			gob.Register(registerType)
-			message := new(types.Message)
-			result := functionList[0]()
-			message.Sender = myID
-			message.Description = common.MsgStageResult
-			message.Contents = result
-			err = encoder.Encode(message)
-			if err != nil {
-				logMessage(err.Error())
-				break
-			}
-			logMessage("Sent results...")
-		}
-	}
-}
-
-// runLastStage runs the function of a worker running the last stage
-func runLastStage(listener net.Listener, functionList []types.AnyFunc, registerType interface{}) {
-	for {
-		connectionFromPreviousWorker, err := listener.Accept()
-		if err != nil {
-			panic(err)
-		}
-		decoder := gob.NewDecoder(connectionFromPreviousWorker)
-		for {
-			logMessage("Starting last stage computation...")
-			gob.Register(registerType)
-			message := new(types.Message)
-			if err := decoder.Decode(message); err != nil {
-				logMessage(err.Error())
-				break
-			}
-			functionList[len(functionList)-1](message.Contents)
-			logMessage("Ending last stage computation...")
-		}
-	}
-}
-
-// runIntermediateStage runs the function of a worker running an intermediate stage
-func runIntermediateStage(listener net.Listener, nextNodeAddress string, functionList []types.AnyFunc, myID string,
-	position int, registerType interface{}) {
-	for {
-		connectionFromPreviousWorker, err := listener.Accept()
-		if err != nil {
-			panic(err)
-		}
-		connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
-		decoder := gob.NewDecoder(connectionFromPreviousWorker)
-		encoder := gob.NewEncoder(connectionToNextWorker)
-		for {
-			logMessage("Starting intermediate computation...")
-			gob.Register(registerType)
-			message := new(types.Message)
-			if err := decoder.Decode(message); err != nil {
-				logMessage(err.Error())
-				break
-			}
-			result := functionList[position](message.Contents)
-			message.Sender = myID
-			message.Description = common.MsgStageResult
-			message.Contents = result
-			if err := encoder.Encode(message); err != nil {
-				logMessage(err.Error())
-				break
-			}
-			logMessage("Ending intermediate computation...")
-		}
-	}
-}
-
-// waitForStartCommand tells a worker to wait for
-func waitForStartCommand(listener net.Listener) {
-	message := new(types.Message)
-	connection, err := listener.Accept()
-	defer connection.Close()
-	if err != nil {
-		panic(err)
-	}
-	decoder := gob.NewDecoder(connection)
-	decoder.Decode(message)
-	if message.Description == common.MsgStartWorker {
-		logMessage("Starting Pipeline")
-	} else {
-		logMessage("Received invalid message from: " + message.Sender + " Expected: MsgStartWorker, and instead " +
-			" received " + strconv.Itoa(message.Description))
-	}
-}
-
 // Run the worker routine
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc, registerType interface{}) {
 	StageID = options.StageID
+
+	go trackStatsGoroutine(options.MasterAddress, options.StageID)
 
 	// Listens for both the master and any other connection
 	myAddress := common.GetOutboundIPAddressHack()
@@ -172,18 +99,5 @@ func Run(options *common.WorkerOptions, functionList []types.AnyFunc, registerTy
 	myPortNumber := common.GetPortNumberFromListener(listener)
 	myNetAddress := common.CombineAddressAndPort(myAddress, myPortNumber)
 	sendInfoToMaster(options.MasterAddress, options.StageID, myNetAddress)
-	isLastStage := options.Position == len(functionList)-1
-	var nextNodeAddress string
-	if !isLastStage {
-		nextNodeAddress = receiveAddressOfNextNode(listener)
-	}
-	// Get data from previous worker, process it, and send results to the next worker
-	if options.Position == 0 {
-		waitForStartCommand(listener)
-		runFirstStage(nextNodeAddress, functionList, options.StageID, registerType)
-	}
-	if isLastStage {
-		runLastStage(listener, functionList, registerType)
-	}
-	runIntermediateStage(listener, nextNodeAddress, functionList, options.StageID, options.Position, registerType)
+	runStage(options, functionList, listener, registerType)
 }

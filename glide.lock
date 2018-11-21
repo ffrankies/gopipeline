@@ -1,6 +1,8 @@
-hash: 2dc7bebf72381815c5d4c9e5a4419e7c276bd27282eb2e8dd3ad934323caf99d
-updated: 2018-10-03T20:25:28.2913682-04:00
+hash: 4c3c58e228dc035f92ca082d4d17b0c9909392661d9a079d879cc6861b6a1358
+updated: 2018-11-10T16:50:22.7828065-05:00
 imports:
+- name: github.com/c9s/goprocinfo
+  version: 0010a05ce49fde7f50669bc7ecda7d41dd6ab824
 - name: golang.org/x/crypto
   version: e3636079e1a4c1f337f212cc5cd2aca108f6c900
   subpackages:

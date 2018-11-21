@@ -27,5 +27,5 @@ func main() {
 	for i := 0; i < 5; i++ {
 		functionList = append(functionList, hello)
 	}
-	gopipeline.Run(functionList)
+	gopipeline.Run(functionList, 1)
 }
