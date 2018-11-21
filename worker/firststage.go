@@ -30,6 +30,7 @@ func waitForStartCommand(listener net.Listener) {
 
 // runFirstStage runs the function of a worker running the first stage
 func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myID string, registerType interface{}) {
+	logPrint("In runFirstStage module")
 	for {
 		connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
 		if err != nil {

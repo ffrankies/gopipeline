@@ -18,18 +18,23 @@ var StageID string
 // WorkerStatistics is the performance statistics of this worker process
 var WorkerStatistics = new(types.WorkerStats)
 
-func logPrint(message string) {
+func openLogFile() (fp *os.File) {
 	f, err := os.OpenFile("/Users/bipashabanerjee/go/src/github.com/ffrankies/gopipeline/logFile", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer f.Close()
+	return f
+}
+func logPrint(message string) {
+	f := openLogFile()
 	log.SetOutput(f)
 	log.Println(message)
 }
 func logMessage(message string) {
 	message = "Worker " + StageID + ": " + message
 	fmt.Println(message)
+	logPrint(message)
 }
 
 // sendInfoToMaster opens a connection to the master node, and sends the address of its listener and the pid of this
@@ -57,7 +62,7 @@ func sendInfoToMaster(masterAddress string, myID string, myAddress string) {
 // runStage chooses the correct stage function to run, and runs it
 func runStage(options *common.WorkerOptions, functionList []types.AnyFunc, listener net.Listener,
 	registerType interface{}) {
-	logPrint("In run first stage")
+	logPrint("In run stage module")
 	isLastStage := options.Position == len(functionList)-1
 	var nextNodeAddress string
 	if !isLastStage {
@@ -77,7 +82,7 @@ func runStage(options *common.WorkerOptions, functionList []types.AnyFunc, liste
 // receiveAddressOfNextNode listens for a message on the listener, assumes it is from master and contains the address
 // of the next code, and parses it as such
 func receiveAddressOfNextNode(listener net.Listener) string {
-	logPrint("Receive address of next node")
+	logPrint("Received address of next node")
 	message := new(types.Message)
 	connection, err := listener.Accept()
 	defer connection.Close()
@@ -97,6 +102,7 @@ func receiveAddressOfNextNode(listener net.Listener) string {
 
 // Run the worker routine
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc, registerType interface{}) {
+	logPrint("In Run module")
 	StageID = options.StageID
 
 	go trackStatsGoroutine()
