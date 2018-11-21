@@ -1,16 +1,20 @@
 package worker
 
 import (
+	"encoding/gob"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"time"
 
 	procreader "github.com/c9s/goprocinfo/linux"
+	"github.com/ffrankies/gopipeline/internal/common"
+	"github.com/ffrankies/gopipeline/types"
 )
 
 // trackStatsGoroutine is meant to track the performance statistics of the given worker, and send them to master
-func trackStatsGoroutine() {
+func trackStatsGoroutine(masterAddress string, stageID string) {
 	for {
 		time.Sleep(1 * time.Second)
 		nodeAvailableMemory := readAvailableMemory()
@@ -18,6 +22,7 @@ func trackStatsGoroutine() {
 		WorkerStatistics.UpdateMemoryUsage(workerMemoryUsage, nodeAvailableMemory)
 		fmt.Println("====Worker Statistics for Stage " + StageID + " ====")
 		fmt.Println(WorkerStatistics)
+		sendStatsToMaster(masterAddress, stageID)
 	}
 }
 
@@ -45,4 +50,25 @@ func readMemoryUsage() uint64 {
 		panic(err)
 	}
 	return procStatm.Size
+}
+
+// sendStatsToMaster sends the WorkerStatistics struct to the master node
+func sendStatsToMaster(masterAddress string, stageID string) {
+	message := new(types.Message)
+	message.Sender = stageID
+	message.Description = common.MsgStageStats
+	message.Contents = WorkerStatistics.Copy()
+	connectionToMaster, err := net.Dial("tcp", masterAddress)
+	if err != nil {
+		fmt.Println(err.Error())
+		panic(err)
+	}
+	defer connectionToMaster.Close()
+	gob.Register(new(types.WorkerStats))
+	encoder := gob.NewEncoder(connectionToMaster)
+	err = encoder.Encode(message)
+	if err != nil {
+		fmt.Println(err.Error())
+		panic(err)
+	}
 }

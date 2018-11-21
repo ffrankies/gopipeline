@@ -7,7 +7,6 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"reflect"
 	"strconv"
 	"syscall"
 
@@ -46,19 +45,15 @@ func receiveConnectionsGoRoutine(schedule *scheduler.Schedule, listener net.List
 // the worker sends it's listener address, parses the message as such, and then closes the connection.
 // In the future, it should check message type, and either do the above, or update a stage/node's statistics
 func handleConnectionFromWorker(schedule *scheduler.Schedule, connection net.Conn) {
+	gob.Register(&types.WorkerStats{})
 	gob.Register(types.MessageStageInfo{})
 	decoder := gob.NewDecoder(connection)
 	message := new(types.Message)
 	decoder.Decode(message)
 	if message.Description == common.MsgStageInfo {
-		fmt.Println("Type of contents = ", reflect.TypeOf(message.Contents))
-		stageInfo, ok := (message.Contents).(types.MessageStageInfo)
-		if ok {
-			schedule.StageList.Find(message.Sender).NetAddress = stageInfo.Address
-			schedule.StageList.Find(message.Sender).PID = stageInfo.PID
-		} else {
-			fmt.Println("Not OK!")
-		}
+		schedule.UpdateStageInfo(message)
+	} else if message.Description == common.MsgStageStats {
+		schedule.UpdateStageStats(message)
 	} else {
 		fmt.Println("Received invalid message type from", message.Sender)
 	}
@@ -160,5 +155,5 @@ func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	fmt.Println("=====Setting up communication between workers=====")
 	establishWorkerCommunication(schedule, len(functionList))
 	startWorkers(schedule)
-	scheduler.Dynamic()
+	schedule.Dynamic()
 }

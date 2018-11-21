@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -55,9 +56,34 @@ func (schedule *Schedule) CalculateFunctionDensity(functionList []types.AnyFunc,
 	return int(density)
 }
 
+// UpdateStageStats updates the worker statistics for a given stage from an incoming message
+func (schedule *Schedule) UpdateStageStats(message *types.Message) {
+	fmt.Println("Received worker stats from", message.Sender)
+	stage := schedule.StageList.Find(message.Sender)
+	stageStats, ok := (message.Contents).(*types.WorkerStats)
+	if ok {
+		stage.Stats = stageStats
+	} else {
+		fmt.Println("ERROR: Could not convert message contents to WorkerStats")
+	}
+}
+
+// UpdateStageInfo updates the stage information for a given stage from an incoming message
+func (schedule *Schedule) UpdateStageInfo(message *types.Message) {
+	fmt.Println("Received worker info from", message.Sender)
+	stage := schedule.StageList.Find(message.Sender)
+	stageInfo, ok := (message.Contents).(types.MessageStageInfo)
+	if ok {
+		stage.NetAddress = stageInfo.Address
+		stage.PID = stageInfo.PID
+	} else {
+		fmt.Println("ERROR: Could not convert message contents to MessageStageInfo")
+	}
+}
+
 // Dynamic does dynamic scheduling of the pipeline stages on the available nodes, with the aim of increasing
 // throughput and memory utilization
-func Dynamic() {
+func (schedule *Schedule) Dynamic() {
 	for {
 		time.Sleep(1 * time.Second)
 	}
