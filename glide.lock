@@ -1,10 +1,12 @@
-hash: 4c3c58e228dc035f92ca082d4d17b0c9909392661d9a079d879cc6861b6a1358
-updated: 2018-11-10T16:50:22.7828065-05:00
+hash: 8536fd122eb240a74f5bcc7e479b3ea2707c25f697b741a67b311c87d6c116e6
+updated: 2018-11-21T13:05:58.271982-05:00
 imports:
 - name: github.com/c9s/goprocinfo
   version: 0010a05ce49fde7f50669bc7ecda7d41dd6ab824
+  subpackages:
+  - linux
 - name: golang.org/x/crypto
-  version: e3636079e1a4c1f337f212cc5cd2aca108f6c900
+  version: 3d3f9f413869b949e48070b5bc593aa22cc2b8f2
   subpackages:
   - curve25519
   - ed25519
@@ -13,6 +15,10 @@ imports:
   - internal/subtle
   - poly1305
   - ssh
+- name: golang.org/x/sync
+  version: 42b317875d0fa942474b76e1b46a6060d720ae6e
+  subpackages:
+  - semaphore
 - name: gopkg.in/yaml.v2
   version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 testImports: []
