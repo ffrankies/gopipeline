@@ -52,7 +52,7 @@ func handleConnectionFromWorker(schedule *scheduler.Schedule, connection net.Con
 	decoder.Decode(message)
 	if message.Description == common.MsgStageInfo {
 		fmt.Println("Type of contents = ", reflect.TypeOf(message.Contents))
-		stageInfo, ok := (message.Contents).(types.MessageStageInfo) //.(types.MessageStageInfo)
+		stageInfo, ok := (message.Contents).(types.MessageStageInfo)
 		if ok {
 			schedule.StageList.Find(message.Sender).NetAddress = stageInfo.Address
 			schedule.StageList.Find(message.Sender).PID = stageInfo.PID

@@ -13,8 +13,9 @@ import (
 func trackStatsGoroutine() {
 	for {
 		time.Sleep(1 * time.Second)
-		WorkerStatistics.NodeAvailableMemory = readAvailableMemory()
-		WorkerStatistics.WorkerMemoryUsage = readMemoryUsage()
+		nodeAvailableMemory := readAvailableMemory()
+		workerMemoryUsage := readMemoryUsage()
+		WorkerStatistics.UpdateMemoryUsage(workerMemoryUsage, nodeAvailableMemory)
 		fmt.Println("====Worker Statistics for Stage " + StageID + " ====")
 		fmt.Println(WorkerStatistics)
 	}
