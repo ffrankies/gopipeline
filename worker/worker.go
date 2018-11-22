@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/user"
 	"strconv"
 
 	"github.com/ffrankies/gopipeline/internal/common"
@@ -18,16 +19,25 @@ var StageID string
 // WorkerStatistics is the performance statistics of this worker process
 var WorkerStatistics = new(types.WorkerStats)
 
+func userDetails() string {
+	usr, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+	return usr.HomeDir
+}
+
 func openLogFile() (fp *os.File) {
-	f, err := os.OpenFile("/Users/bipashabanerjee/go/src/github.com/ffrankies/gopipeline/logFile", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	userPath := userDetails()
+	f, err := os.OpenFile(userPath+"/logFile", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer f.Close()
 	return f
 }
 func logPrint(message string) {
 	f := openLogFile()
+	defer f.Close()
 	log.SetOutput(f)
 	log.Println(message)
 }
@@ -40,6 +50,7 @@ func logMessage(message string) {
 // sendInfoToMaster opens a connection to the master node, and sends the address of its listener and the pid of this
 // stage's worker process
 func sendInfoToMaster(masterAddress string, myID string, myAddress string) {
+
 	logPrint("Sending info to master")
 	message := new(types.Message)
 	message.Sender = myID
@@ -102,6 +113,7 @@ func receiveAddressOfNextNode(listener net.Listener) string {
 
 // Run the worker routine
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc, registerType interface{}) {
+	fmt.Println("-------RUN---------")
 	logPrint("In Run module")
 	StageID = options.StageID
 

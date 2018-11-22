@@ -65,9 +65,10 @@ func handleConnectionFromWorker(connection net.Conn) {
 	connection.Close()
 }
 
-// buildWorkerCommand builds the command with which to start a worker
-func buildWorkerCommand(program string, masterAddress string, stageID string, position int) string {
-	command := "/Users/bipashabanerjee/go/bin/" + program + " -address=" + masterAddress
+// buildWorkerCommand builds the command with which to start a worker.
+// The User Path should have a "/" included in the path.
+func buildWorkerCommand(program string, masterAddress string, stageID string, position int, userpath string) string {
+	command := userpath + program + " -address=" + masterAddress
 	command += " -id=" + stageID
 	command += " -position=" + strconv.Itoa(position)
 	command += " worker"
@@ -150,7 +151,7 @@ func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	fmt.Println("=====Starting workers=====")
 	for _, stage := range scheduler.PipelineStageList.List {
 		sshConnection := NewSSHConnection(stage.Host, config.SSHUser, config.SSHPort)
-		command := buildWorkerCommand(options.Program, masterAddress, stage.StageID, stage.Position)
+		command := buildWorkerCommand(options.Program, masterAddress, stage.StageID, stage.Position, config.UserPath)
 		fmt.Println("Running command:", command, "on node:", stage.Host)
 		go sshConnection.RunCommand(command)
 	}

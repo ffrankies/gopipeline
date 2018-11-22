@@ -7,10 +7,6 @@ import (
 	"github.com/ffrankies/gopipeline/types"
 )
 
-// Note: erase later. msg receiving and result reciving should be on different portions,
-//and it should lock one before executing the other.
-//So that they donot run simultaiously.
-
 // runIntermediateStage runs the function of a worker running an intermediate stage
 func runIntermediateStage(listener net.Listener, nextNodeAddress string, functionList []types.AnyFunc, myID string,
 	position int, registerType interface{}) {
@@ -32,7 +28,7 @@ func runIntermediateStage(listener net.Listener, nextNodeAddress string, functio
 				break
 			}
 			queue.Push(input)
-
+			logMessage("Ending intermediate computation...")
 		}
 	}
 }
