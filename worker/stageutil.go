@@ -26,7 +26,7 @@ func executeStage(functionList []types.AnyFunc, position int, stageID string, in
 	var result interface{}
 	timerStart := time.Now()
 	if input == nil {
-		result = functionList[position]()
+		result = functionList[position](nil)
 	} else {
 		result = functionList[position](input)
 	}
