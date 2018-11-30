@@ -10,10 +10,10 @@ import (
 	"github.com/ffrankies/gopipeline/types"
 )
 
-func hello(args ...interface{}) interface{} {
+func hello(arg interface{}) interface{} {
 	time.Sleep(2 * time.Second)
-	if len(args) > 0 {
-		num := args[0].(int)
+	if arg != nil {
+		num := arg.(int)
 		fmt.Println("Hello World from Position: " + strconv.Itoa(num))
 		num++
 		return num
