@@ -130,7 +130,7 @@ func (set *Set) Copy() *Set {
 
 // Generate a sets of numbers from which the apriori algorithm will select common subsets
 // This method does not take in any arguments, but they are present in the function signature for type compatibility
-func Generate(args ...interface{}) interface{} {
+func Generate(arg interface{}) interface{} {
 	randomSource := rand.NewSource(time.Now().UnixNano())
 	randomGenerator := rand.New(randomSource)
 	setSize := 50
@@ -148,8 +148,8 @@ func Generate(args ...interface{}) interface{} {
 }
 
 // NextIteration creates the next iteration of sets for the a-priori algorithm
-func NextIteration(args ...interface{}) interface{} {
-	params := args[0].(Parameters)
+func NextIteration(arg interface{}) interface{} {
+	params := arg.(Parameters)
 	currentSet := new(SetList)
 	if params.LenCurrentSetItems == 0 {
 		currentSet = BuildInitialSets(params.OriginalSet)
