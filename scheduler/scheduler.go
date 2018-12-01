@@ -10,15 +10,21 @@ import (
 
 // Schedule contains the information needed for scheduling
 type Schedule struct {
-	NodeList  *types.PipelineNodeList  // The list of available nodes, with metadata
-	StageList *types.PipelineStageList // The list of pipeline stages, with metadata
+	freeNodeList *types.PipelineNodeList  // The list of Nodes available for scheduling
+	NodeList     *types.PipelineNodeList  // The list of Nodes that have at least one stages running on them
+	StageList    *types.PipelineStageList // The list of pipeline Stages, with metadata
 }
 
-// NewSchedule creates a new scheduler with empty node and stage lists
-func NewSchedule() *Schedule {
+// NewSchedule creates a new scheduler with empty node and stage lists, and populates the empty node list
+func NewSchedule(nodeList []string) *Schedule {
 	schedule := new(Schedule)
 	schedule.NodeList = types.NewPipelineNodeList()
 	schedule.StageList = types.NewPipelineStageList()
+	schedule.freeNodeList = types.NewPipelineNodeList()
+	for _, nodeHostName := range nodeList {
+		node := types.NewPipelineNode(nodeHostName, -1)
+		schedule.freeNodeList.AddNode(node)
+	}
 	return schedule
 }
 
