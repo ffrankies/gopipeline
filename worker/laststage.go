@@ -9,6 +9,8 @@ import (
 
 // runLastStage runs the function of a worker running the last stage
 func runLastStage(listener net.Listener, functionList []types.AnyFunc, registerType interface{}) {
+	queue := makeQueue()
+	logPrint("In run last stage module")
 	for {
 		connectionFromPreviousWorker, err := listener.Accept()
 		if err != nil {
@@ -21,6 +23,7 @@ func runLastStage(listener net.Listener, functionList []types.AnyFunc, registerT
 			if err != nil {
 				break
 			}
+			queue.Push(input)
 			executeStage(functionList, len(functionList)-1, "", input)
 			logMessage("Ending last stage computation...")
 		}

@@ -11,6 +11,7 @@ import (
 
 // waitForStartCommand tells a worker to wait for
 func waitForStartCommand(listener net.Listener) {
+	logPrint("Waiting for the start command")
 	message := new(types.Message)
 	connection, err := listener.Accept()
 	defer connection.Close()
@@ -29,22 +30,9 @@ func waitForStartCommand(listener net.Listener) {
 
 // runFirstStage runs the function of a worker running the first stage
 func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myID string, registerType interface{}) {
-	for {
-		connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
-		if err != nil {
-			panic(err)
-		}
-		encoder := gob.NewEncoder(connectionToNextWorker)
-		for {
-			logMessage("Starting computation...")
-			gob.Register(registerType)
-			message := executeStage(functionList, 0, myID, nil)
-			err = encoder.Encode(message)
-			if err != nil {
-				logMessage(err.Error())
-				break
-			}
-			logMessage("Sent results...")
-		}
-	}
+	logPrint("In runFirstStage module")
+	queue := makeQueue()
+	go exeecuteAndSend(functionList, 0, myID, queue, nextNodeAddress) //Check position
+
+	logMessage("Sent results...")
 }

@@ -2,6 +2,7 @@ package worker
 
 import (
 	"encoding/gob"
+	"net"
 	"time"
 
 	"github.com/ffrankies/gopipeline/internal/common"
@@ -10,6 +11,8 @@ import (
 
 // decodeInput decodes input from a previous stage
 func decodeInput(decoder *gob.Decoder, registerType interface{}) (input interface{}, err error) {
+	//que := makeQueue(10) //check the size of the queue
+
 	gob.Register(registerType)
 	message := new(types.Message)
 	err = decoder.Decode(message)
@@ -17,6 +20,7 @@ func decodeInput(decoder *gob.Decoder, registerType interface{}) (input interfac
 		logMessage(err.Error())
 	}
 	input = message.Contents
+	//que.Push(&Element{input}) //FILL THE PUSH PART OF THE QUEUE
 	return
 }
 
@@ -35,4 +39,26 @@ func executeStage(functionList []types.AnyFunc, position int, stageID string, in
 	message.Description = common.MsgStageResult
 	message.Contents = result
 	return message
+}
+
+// executeAndSend computes the result of the stage and sends it to the next stage.
+
+func exeecuteAndSend(functionList []types.AnyFunc, position int, myID string, queue *Queue, nextNodeAddress string) {
+
+	connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
+	if err != nil {
+		panic(err)
+	}
+	encoder := gob.NewEncoder(connectionToNextWorker)
+	for {
+		logMessage("Starting Computatiion")
+		input := queue.Pop()
+		message := executeStage(functionList, position, myID, input)
+		if err := encoder.Encode(message); err != nil {
+			logMessage(err.Error())
+			break
+		}
+
+	}
+
 }
