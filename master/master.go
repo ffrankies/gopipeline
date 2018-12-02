@@ -137,8 +137,7 @@ func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	config := NewConfig(options.ConfigPath)
 	schedule := scheduler.NewSchedule(config.NodeList)
 	setUpSignalHandler(schedule, config)
-	fmt.Println("=====Doing initial scheduling=====")
-	schedule.Static(functionList, config.NodeList)
+	schedule.Static(functionList)
 	masterAddress, err := startListener(schedule)
 	if err != nil {
 		panic(err)

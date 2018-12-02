@@ -28,12 +28,24 @@ func (nodeList *PipelineNodeList) FindNode(nodeAddress string) (pipelineNode *Pi
 
 // AddNode will add a PipelineNode to the PipelineNodeList
 func (nodeList *PipelineNodeList) AddNode(node *PipelineNode) {
+	node.Position = len(nodeList.list) + 1
 	nodeList.list = append(nodeList.list, node)
 }
 
 // Length returns the number of nodes in the PipelineNodeList
 func (nodeList *PipelineNodeList) Length() int {
 	return len(nodeList.list)
+}
+
+// Pop removes and returns the first PipelineNode from the PipelineNodeList list
+func (nodeList *PipelineNodeList) Pop() *PipelineNode {
+	firstNode := nodeList.list[0]
+	if len(nodeList.list) > 1 {
+		nodeList.list = nodeList.list[1:]
+	} else {
+		nodeList.list = make([]*PipelineNode, 0)
+	}
+	return firstNode
 }
 
 // PipelineNode struct refers to a computational PipelineNode. A PipelineNode can be assigned multiple functions, or
