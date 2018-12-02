@@ -135,11 +135,10 @@ func setUpSignalHandler(schedule *scheduler.Schedule, config *Config) {
 // Run executes the main logic of the "master" node.
 // This involves setting up the pipeline stages, and starting worker processes on each node in the pipeline.
 func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
-	schedule := scheduler.NewSchedule()
 	config := NewConfig(options.ConfigPath)
+	schedule := scheduler.NewSchedule(config.NodeList)
 	setUpSignalHandler(schedule, config)
-	fmt.Println("=====Doing initial scheduling=====")
-	schedule.Static(functionList, config.NodeList)
+	schedule.Static(functionList)
 	masterAddress, err := startListener(schedule)
 	if err != nil {
 		panic(err)
