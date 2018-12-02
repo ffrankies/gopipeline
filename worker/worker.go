@@ -31,7 +31,6 @@ func userHomeDir() string {
 // opens a log file in the user's home directory
 func openLogFile() (fp *os.File) {
 	userPath := userHomeDir()
-	fmt.Println("Opening log file at: ", userPath)
 	f, err := os.OpenFile(userPath+"/gopipeline.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		log.Fatal(err)
@@ -50,9 +49,9 @@ func logPrint(message string) {
 
 // logMessage prints a message to the console AND the log file
 func logMessage(message string) {
+	logPrint(message)
 	message = "Worker " + StageID + ": " + message
 	fmt.Println(message)
-	logPrint(message)
 }
 
 // sendInfoToMaster opens a connection to the master node, and sends the address of its listener and the pid of this
