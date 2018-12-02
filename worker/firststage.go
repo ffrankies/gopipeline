@@ -31,8 +31,17 @@ func waitForStartCommand(listener net.Listener) {
 // runFirstStage runs the function of a worker running the first stage
 func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myID string, registerType interface{}) {
 	logPrint("In runFirstStage module")
-	queue := makeQueue()
-	go executeAndSend(functionList, 0, myID, queue, nextNodeAddress) //Check position
-
-	logMessage("Sent results...")
+	connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
+	if err != nil {
+		panic(err)
+	}
+	encoder := gob.NewEncoder(connectionToNextWorker)
+	for {
+		message := executeStage(functionList, 0, myID, nil)
+		if err := encoder.Encode(message); err != nil {
+			logMessage(err.Error())
+			break
+		}
+		logPrint("Sent computation results to next stage")
+	}
 }

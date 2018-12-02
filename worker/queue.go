@@ -1,11 +1,8 @@
 package worker
 
 import (
-	"context"
 	"fmt"
 	"sync"
-
-	"golang.org/x/sync/semaphore"
 )
 
 // Element struct
@@ -22,18 +19,16 @@ func (n *Element) MessageString() string {
 type Queue struct {
 	elements  []interface{}
 	length    int
-	semaphore *semaphore.Weighted
+	semaphore chan int
 	mutex     *sync.Mutex
-	context   context.Context
 }
 
 // makeQueue makes a new queue and returns it along with its size.
 func makeQueue() *Queue {
 	return &Queue{
 		elements:  make([]interface{}, 0),
-		semaphore: semaphore.NewWeighted(0),
+		semaphore: make(chan int, 9999), // Make a buffered channel with a high buffer
 		mutex:     &sync.Mutex{},
-		context:   context.TODO(),
 	}
 }
 
@@ -41,13 +36,13 @@ func makeQueue() *Queue {
 func (q *Queue) Push(element interface{}) {
 	q.mutex.Lock()
 	q.elements = append(q.elements, element)
-	q.semaphore.Release(1)
+	q.semaphore <- 1 // Write to channel (semaphore++)
 	q.mutex.Unlock()
 }
 
 // Pop removes an element from the queue
 func (q *Queue) Pop() interface{} {
-	q.semaphore.Acquire(q.context, 1)
+	<-q.semaphore // Read from channel (semaphore--)
 	q.mutex.Lock()
 	result := q.elements[0]
 	q.elements = q.elements[1:]

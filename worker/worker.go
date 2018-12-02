@@ -120,7 +120,6 @@ func receiveAddressOfNextNode(listener net.Listener) string {
 
 // Run the worker routine
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc, registerType interface{}) {
-	fmt.Println("-------RUN---------")
 	StageID = options.StageID
 
 	go trackStatsGoroutine(options.MasterAddress, options.StageID)
