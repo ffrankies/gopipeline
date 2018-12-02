@@ -32,7 +32,7 @@ func waitForStartCommand(listener net.Listener) {
 func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myID string, registerType interface{}) {
 	logPrint("In runFirstStage module")
 	queue := makeQueue()
-	go exeecuteAndSend(functionList, 0, myID, queue, nextNodeAddress) //Check position
+	go executeAndSend(functionList, 0, myID, queue, nextNodeAddress) //Check position
 
 	logMessage("Sent results...")
 }

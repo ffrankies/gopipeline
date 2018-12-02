@@ -12,7 +12,7 @@ func runIntermediateStage(listener net.Listener, nextNodeAddress string, functio
 	position int, registerType interface{}) {
 	logPrint("In run Intermediate Stage module")
 	queue := makeQueue()
-	go exeecuteAndSend(functionList, position, myID, queue, nextNodeAddress)
+	go executeAndSend(functionList, position, myID, queue, nextNodeAddress)
 	for {
 		connectionFromPreviousWorker, err := listener.Accept()
 		if err != nil {
