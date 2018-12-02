@@ -77,7 +77,6 @@ func (schedule *Schedule) AssignStageToNode(function types.AnyFunc, pipelineNode
 
 // UpdateStageStats updates the worker statistics for a given stage from an incoming message
 func (schedule *Schedule) UpdateStageStats(message *types.Message) {
-	fmt.Println("Received worker stats from", message.Sender)
 	stage := schedule.StageList.Find(message.Sender)
 	stageStats, ok := (message.Contents).(*types.WorkerStats)
 	if ok {
