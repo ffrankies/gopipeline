@@ -19,7 +19,8 @@ var StageID string
 // WorkerStatistics is the performance statistics of this worker process
 var WorkerStatistics = new(types.WorkerStats)
 
-func userDetails() string {
+// userHomeDir returns the current user's home directory
+func userHomeDir() string {
 	usr, err := user.Current()
 	if err != nil {
 		panic(err)
@@ -27,20 +28,27 @@ func userDetails() string {
 	return usr.HomeDir
 }
 
+// opens a log file in the user's home directory
 func openLogFile() (fp *os.File) {
-	userPath := userDetails()
-	f, err := os.OpenFile(userPath+"/logFile", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	userPath := userHomeDir()
+	fmt.Println("Opening log file at: ", userPath)
+	f, err := os.OpenFile(userPath+"/gopipeline.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
 	return f
 }
+
+// logPrint prints a message to the log file
 func logPrint(message string) {
 	f := openLogFile()
 	defer f.Close()
 	log.SetOutput(f)
+	message = "Worker " + StageID + ": " + message
 	log.Println(message)
 }
+
+// logMessage prints a message to the console AND the log file
 func logMessage(message string) {
 	message = "Worker " + StageID + ": " + message
 	fmt.Println(message)
@@ -114,7 +122,6 @@ func receiveAddressOfNextNode(listener net.Listener) string {
 // Run the worker routine
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc, registerType interface{}) {
 	fmt.Println("-------RUN---------")
-	logPrint("In Run module")
 	StageID = options.StageID
 
 	go trackStatsGoroutine(options.MasterAddress, options.StageID)
