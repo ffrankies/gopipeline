@@ -3,6 +3,7 @@ package scheduler
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"time"
 
 	"github.com/ffrankies/gopipeline/types"
@@ -13,14 +14,20 @@ type Schedule struct {
 	freeNodeList *types.PipelineNodeList  // The list of Nodes available for scheduling
 	NodeList     *types.PipelineNodeList  // The list of Nodes that have at least one stages running on them
 	StageList    *types.PipelineStageList // The list of pipeline Stages, with metadata
+	sshUser      string                   // The username to use for logging in with SSH
+	sshPort      int                      // The port to use for logging in with SSH
+	sshUserPath  string                   // The path to the program command on the remote machines
 }
 
 // NewSchedule creates a new scheduler with empty node and stage lists, and populates the empty node list
-func NewSchedule(nodeList []string) *Schedule {
+func NewSchedule(nodeList []string, SSHUser string, SSHPort int, SSHUserPath string) *Schedule {
 	schedule := new(Schedule)
 	schedule.NodeList = types.NewPipelineNodeList()
 	schedule.StageList = types.NewPipelineStageList()
 	schedule.freeNodeList = types.NewPipelineNodeList()
+	schedule.sshUser = SSHUser
+	schedule.sshPort = SSHPort
+	schedule.sshUserPath = SSHUserPath
 	for _, nodeHostName := range nodeList {
 		node := types.NewPipelineNode(nodeHostName, -1)
 		schedule.freeNodeList.AddNode(node)
@@ -97,6 +104,32 @@ func (schedule *Schedule) UpdateStageInfo(message *types.Message) {
 	} else {
 		fmt.Println("ERROR: Could not convert message contents to MessageStageInfo")
 	}
+}
+
+// StartStages starts GoPipeline workers for all the current stages
+func (schedule *Schedule) StartStages(program string, masterAddress string) {
+	fmt.Println("Starting GoPipeline workers")
+	for _, stage := range schedule.StageList.List {
+		schedule.startStage(stage, program, masterAddress)
+	}
+}
+
+// startStage starts a GoPipeline worker for a given stage
+func (schedule *Schedule) startStage(stage *types.PipelineStage, program string, masterAddress string) {
+	sshConnection := types.NewSSHConnection(stage.Host, schedule.sshUser, schedule.sshPort)
+	command := buildWorkerCommand(program, masterAddress, stage, schedule.sshUserPath)
+	fmt.Println("Running command:", command, "on node:", stage.Host)
+	go sshConnection.RunCommand(command)
+}
+
+// buildWorkerCommand builds the command with which to start a worker.
+// The User Path should have a "/" included in the path.
+func buildWorkerCommand(program string, masterAddress string, stage *types.PipelineStage, userpath string) string {
+	command := userpath + program + " -address=" + masterAddress
+	command += " -id=" + stage.StageID
+	command += " -position=" + strconv.Itoa(stage.Position)
+	command += " worker"
+	return command
 }
 
 // Dynamic does dynamic scheduling of the pipeline stages on the available nodes, with the aim of increasing

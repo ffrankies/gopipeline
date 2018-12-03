@@ -60,16 +60,6 @@ func handleConnectionFromWorker(schedule *scheduler.Schedule, connection net.Con
 	connection.Close()
 }
 
-// buildWorkerCommand builds the command with which to start a worker.
-// The User Path should have a "/" included in the path.
-func buildWorkerCommand(program string, masterAddress string, stageID string, position int, userpath string) string {
-	command := userpath + program + " -address=" + masterAddress
-	command += " -id=" + stageID
-	command += " -position=" + strconv.Itoa(position)
-	command += " worker"
-	return command
-}
-
 // establishInitialWorkerCommunication establishes initial communication between workers by telling them the address
 // of the next worker in the pipeline
 func establishWorkerCommunication(schedule *scheduler.Schedule, numPositions int) {
@@ -123,7 +113,7 @@ func setUpSignalHandler(schedule *scheduler.Schedule, config *Config) {
 			fmt.Println("Performing cleanup...")
 			schedule.StageList.WaitUntilAllListenerPortsUpdated()
 			for _, stage := range schedule.StageList.List {
-				sshConnection := NewSSHConnection(stage.Host, config.SSHUser, config.SSHPort)
+				sshConnection := types.NewSSHConnection(stage.Host, config.SSHUser, config.SSHPort)
 				command := "kill " + strconv.Itoa(stage.PID)
 				sshConnection.RunCommand(command)
 			}
@@ -136,20 +126,14 @@ func setUpSignalHandler(schedule *scheduler.Schedule, config *Config) {
 // This involves setting up the pipeline stages, and starting worker processes on each node in the pipeline.
 func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	config := NewConfig(options.ConfigPath)
-	schedule := scheduler.NewSchedule(config.NodeList)
+	schedule := scheduler.NewSchedule(config.NodeList, config.SSHUser, config.SSHPort, config.UserPath)
 	setUpSignalHandler(schedule, config)
 	schedule.Static(functionList)
 	masterAddress, err := startListener(schedule)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("=====Starting workers=====")
-	for _, stage := range schedule.StageList.List {
-		sshConnection := NewSSHConnection(stage.Host, config.SSHUser, config.SSHPort)
-		command := buildWorkerCommand(options.Program, masterAddress, stage.StageID, stage.Position, config.UserPath)
-		fmt.Println("Running command:", command, "on node:", stage.Host)
-		go sshConnection.RunCommand(command)
-	}
+	schedule.StartStages(options.Program, masterAddress)
 	fmt.Println("=====Waiting for workers to send their net addresses=====")
 	schedule.StageList.WaitUntilAllListenerPortsUpdated()
 	fmt.Println("=====Setting up communication between workers=====")
