@@ -1,11 +1,14 @@
 package scheduler
 
 import (
+	"encoding/gob"
 	"fmt"
 	"math"
+	"net"
 	"strconv"
 	"time"
 
+	"github.com/ffrankies/gopipeline/internal/common"
 	"github.com/ffrankies/gopipeline/types"
 )
 
@@ -130,6 +133,34 @@ func buildWorkerCommand(program string, masterAddress string, stage *types.Pipel
 	command += " -position=" + strconv.Itoa(stage.Position)
 	command += " worker"
 	return command
+}
+
+// EstablishInitialWorkerCommunication establishes initial communication between workers by telling them the address
+// of the next worker in the pipeline
+func (schedule *Schedule) EstablishWorkerCommunication() {
+	numPositions := schedule.StageList.Length()
+	for position := 1; position < numPositions; position++ {
+		nextWorker := schedule.StageList.FindByPosition(position)
+		currentWorker := schedule.StageList.FindByPosition(position - 1)
+		sendNextWorkerAddress(currentWorker, nextWorker)
+	}
+}
+
+// sendNextWorkerAddress sends the next worker's address to the given worker
+func sendNextWorkerAddress(currentWorker *types.PipelineStage, nextWorker *types.PipelineStage) {
+	message := new(types.Message)
+	message.Sender = "0"
+	message.Description = common.MsgNextStageAddr
+	message.Contents = nextWorker.NetAddress
+	fmt.Println("Setting up connection to:", currentWorker.NetAddress)
+	connection, err := net.Dial("tcp", currentWorker.NetAddress)
+	// defer connection.Close()
+	if err != nil {
+		panic(err)
+	}
+	encoder := gob.NewEncoder(connection)
+	encoder.Encode(message)
+	fmt.Println("Sent addr", nextWorker.NetAddress, "to:", currentWorker.NetAddress)
 }
 
 // Dynamic does dynamic scheduling of the pipeline stages on the available nodes, with the aim of increasing
