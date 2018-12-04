@@ -133,12 +133,12 @@ func (set *Set) Copy() *Set {
 func Generate(arg interface{}) interface{} {
 	randomSource := rand.NewSource(time.Now().UnixNano())
 	randomGenerator := rand.New(randomSource)
-	setSize := 50
-	numSets := 300
+	setSize := 40
+	numSets := 100
 	sets := new(SetList)
 	for i := 0; i < numSets; i++ {
 		set := NewSet()
-		values := randomGenerator.Perm(75)[:setSize]
+		values := randomGenerator.Perm(60)[:setSize]
 		for _, value := range values {
 			set.Add(value)
 		}
