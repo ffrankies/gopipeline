@@ -168,5 +168,11 @@ func sendNextWorkerAddress(currentWorker *types.PipelineStage, nextWorker *types
 func (schedule *Schedule) Dynamic() {
 	for {
 		time.Sleep(1 * time.Second)
+		bottleneck := schedule.StageList.FindBottleneck()
+		if bottleneck == -1 {
+			fmt.Println("There is no bottleneck")
+		} else {
+			fmt.Println("Found a bottleneck at", bottleneck)
+		}
 	}
 }
