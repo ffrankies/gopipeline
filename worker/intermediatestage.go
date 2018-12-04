@@ -18,17 +18,13 @@ func runIntermediateStage(listener net.Listener, nextNodeAddress string, functio
 		if err != nil {
 			panic(err)
 		}
-
 		decoder := gob.NewDecoder(connectionFromPreviousWorker)
-
 		for {
-			logMessage("Starting intermediate computation...")
 			input, err := decodeInput(decoder, registerType)
 			if err != nil {
 				break
 			}
 			queue.Push(input)
-			logMessage("Ending intermediate computation...")
 		}
 	}
 }

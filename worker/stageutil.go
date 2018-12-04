@@ -43,21 +43,28 @@ func executeStage(functionList []types.AnyFunc, position int, stageID string, in
 
 // executeAndSend computes the result of the stage and sends it to the next stage.
 func executeAndSend(functionList []types.AnyFunc, position int, myID string, queue *Queue, nextNodeAddress string) {
-
 	connectionToNextWorker, err := net.Dial("tcp", nextNodeAddress)
 	if err != nil {
 		panic(err)
 	}
 	encoder := gob.NewEncoder(connectionToNextWorker)
 	for {
-		logMessage("Starting Computation")
 		input := queue.Pop()
 		message := executeStage(functionList, position, myID, input)
 		if err := encoder.Encode(message); err != nil {
 			logMessage(err.Error())
 			break
 		}
-
+		logPrint("Sent computation results to next stage")
 	}
+}
 
+// executeOnly computes the result of the stage and logs the time at which the computation completed.
+func executeOnly(functionList []types.AnyFunc, position int, myID string, queue *Queue) {
+	for {
+		input := queue.Pop()
+		executeStage(functionList, position, myID, input)
+		currentTime := time.Now()
+		logPrint("Finished computation at time: " + currentTime.String())
+	}
 }

@@ -80,21 +80,21 @@ func sendInfoToMaster(masterAddress string, myID string, myAddress string) {
 // runStage chooses the correct stage function to run, and runs it
 func runStage(options *common.WorkerOptions, functionList []types.AnyFunc, listener net.Listener,
 	registerType interface{}) {
-	logPrint("In run stage module")
 	isLastStage := options.Position == len(functionList)-1
 	var nextNodeAddress string
 	if !isLastStage {
 		nextNodeAddress = receiveAddressOfNextNode(listener)
 	}
 	// Get data from previous worker, process it, and send results to the next worker
+	logPrint("My position is " + strconv.Itoa(options.Position))
 	if options.Position == 0 {
 		waitForStartCommand(listener)
 		runFirstStage(nextNodeAddress, functionList, options.StageID, registerType)
+	} else if isLastStage {
+		runLastStage(listener, functionList, options.StageID, registerType)
+	} else {
+		runIntermediateStage(listener, nextNodeAddress, functionList, options.StageID, options.Position, registerType)
 	}
-	if isLastStage {
-		runLastStage(listener, functionList, registerType)
-	}
-	runIntermediateStage(listener, nextNodeAddress, functionList, options.StageID, options.Position, registerType)
 }
 
 // receiveAddressOfNextNode listens for a message on the listener, assumes it is from master and contains the address

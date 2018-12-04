@@ -37,6 +37,7 @@ func runFirstStage(nextNodeAddress string, functionList []types.AnyFunc, myID st
 	}
 	encoder := gob.NewEncoder(connectionToNextWorker)
 	for {
+		gob.Register(registerType)
 		message := executeStage(functionList, 0, myID, nil)
 		if err := encoder.Encode(message); err != nil {
 			logMessage(err.Error())
