@@ -3,6 +3,7 @@ package worker
 import (
 	"encoding/gob"
 	"net"
+	"strconv"
 	"time"
 
 	"github.com/ffrankies/gopipeline/internal/common"
@@ -65,6 +66,6 @@ func executeOnly(functionList []types.AnyFunc, position int, myID string, queue 
 		input := queue.Pop()
 		executeStage(functionList, position, myID, input)
 		currentTime := time.Now()
-		logPrint("Finished computation at time: " + currentTime.String())
+		logPrint("Finished computation at time: " + strconv.FormatInt(currentTime.UnixNano(), 10))
 	}
 }
