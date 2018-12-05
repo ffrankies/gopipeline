@@ -4,6 +4,9 @@ package types
 // AnyFunc is any function with any number of input parameters and a single return value
 type AnyFunc func(arg interface{}) interface{}
 
+// CallbackFunc is a callback function
+type CallbackFunc func(args ...interface{})
+
 // Message is a generic form of the messages passed between GoPipeline nodes
 type Message struct {
 	Sender      string      // The ID Of the sender
