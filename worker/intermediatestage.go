@@ -25,6 +25,7 @@ func runIntermediateStage(listener net.Listener, nextNodeAddress string, functio
 				break
 			}
 			queue.Push(input)
+			WorkerStatistics.UpdateBacklog(queue.GetLength())
 		}
 	}
 }

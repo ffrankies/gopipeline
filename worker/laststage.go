@@ -10,7 +10,6 @@ import (
 // runLastStage runs the function of a worker running the last stage
 func runLastStage(listener net.Listener, functionList []types.AnyFunc, myID string, registerType interface{}) {
 	queue := makeQueue()
-	logPrint("In run last stage module")
 	go executeOnly(functionList, len(functionList)-1, myID, queue)
 	for {
 		connectionFromPreviousWorker, err := listener.Accept()
@@ -24,6 +23,7 @@ func runLastStage(listener net.Listener, functionList []types.AnyFunc, myID stri
 				break
 			}
 			queue.Push(input)
+			WorkerStatistics.UpdateBacklog(queue.GetLength())
 		}
 	}
 }

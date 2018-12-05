@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -61,6 +62,14 @@ func (workerStats *WorkerStats) UpdateMemoryUsage(memoryUsage uint64, availableM
 	}
 	workerStats.NodeAvailableMemory = availableMemory
 	workerStats.WorkerMemoryUsage = averageMemoryUsage
+	workerStats.lock.Unlock()
+}
+
+// UpdateBacklog updates the backlog with the number of elements in the input queue
+func (workerStats *WorkerStats) UpdateBacklog(backlog int) {
+	workerStats.lock.Lock()
+	fmt.Println("Updating backlog to", backlog)
+	workerStats.Backlog = backlog
 	workerStats.lock.Unlock()
 }
 
