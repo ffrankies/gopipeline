@@ -74,6 +74,8 @@ func (stageList *PipelineStageList) WaitUntilAllListenerPortsUpdated() {
 
 // FindBottleneck attempts to find the stage position that executes much slower than its neighbors
 func (stageList *PipelineStageList) FindBottleneck() int {
+	bottleneckPosition := -1
+	bottleneckValue := -1.0
 	for position := 0; position <= stageList.maxPosition; position++ {
 		currentPositionExecutionTime := stageList.AverageExecutionTime(position)
 		nextPositionExecutionTime := float64(0.0)
@@ -81,17 +83,27 @@ func (stageList *PipelineStageList) FindBottleneck() int {
 		if position != stageList.maxPosition { // Check if slower than next
 			nextPositionExecutionTime = stageList.AverageExecutionTime(position + 1)
 			if nextPositionExecutionTime > 0.0 && currentPositionExecutionTime > 1.5*nextPositionExecutionTime {
-				return position
+				difference := currentPositionExecutionTime - nextPositionExecutionTime
+				if bottleneckValue < difference {
+					bottleneckValue = difference
+					bottleneckPosition = position
+					continue
+				}
 			}
 		}
 		if position != 0 { // Check if slower than previous
 			previousPositionExecutionTime = stageList.AverageExecutionTime(position - 1)
 			if previousPositionExecutionTime > 0.0 && currentPositionExecutionTime > 1.5*previousPositionExecutionTime {
-				return position
+				difference := currentPositionExecutionTime - previousPositionExecutionTime
+				if bottleneckValue < difference {
+					bottleneckValue = difference
+					bottleneckPosition = position
+					continue
+				}
 			}
 		}
 	}
-	return -1
+	return bottleneckPosition
 }
 
 // AverageExecutionTime calculates the average execution time given a stage's position
