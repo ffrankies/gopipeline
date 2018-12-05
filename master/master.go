@@ -88,7 +88,7 @@ func setUpSignalHandler(schedule *scheduler.Schedule, config *Config) {
 			for _, stage := range schedule.StageList.List {
 				sshConnection := types.NewSSHConnection(stage.Host, config.SSHUser, config.SSHPort)
 				command := "kill " + strconv.Itoa(stage.PID)
-				sshConnection.RunCommand(command)
+				sshConnection.RunCommand(command, nil, nil)
 			}
 			os.Exit(0)
 		}

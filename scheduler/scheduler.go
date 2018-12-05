@@ -122,7 +122,13 @@ func (schedule *Schedule) startStage(stage *types.PipelineStage, program string,
 	sshConnection := types.NewSSHConnection(stage.Host, schedule.sshUser, schedule.sshPort)
 	command := buildWorkerCommand(program, masterAddress, stage, schedule.sshUserPath)
 	fmt.Println("Running command:", command, "on node:", stage.Host)
-	go sshConnection.RunCommand(command)
+	go sshConnection.RunCommand(command, workerErrorCallback, stage)
+}
+
+// workerErrorCallback is the callback for when a worker errors out and dies
+func workerErrorCallback(args ...interface{}) {
+	stage := args[0].(*types.PipelineStage)
+	stage.PID = -2 // Mark stage as errored out
 }
 
 // buildWorkerCommand builds the command with which to start a worker.
