@@ -52,5 +52,8 @@ func (q *Queue) Pop() interface{} {
 
 // GetLength gives out the length of the queue
 func (q *Queue) GetLength() int {
-	return q.length
+	q.mutex.Lock()
+	length := len(q.elements)
+	q.mutex.Unlock()
+	return length
 }
