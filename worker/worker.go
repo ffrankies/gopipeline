@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/user"
 	"strconv"
+	"time"
 
 	"github.com/ffrankies/gopipeline/internal/common"
 	"github.com/ffrankies/gopipeline/types"
@@ -65,7 +66,9 @@ func sendInfoToMaster(masterAddress string, myID string, myAddress string) {
 	message.Description = common.MsgStageInfo
 	stageInfo := types.MessageStageInfo{Address: myAddress, PID: os.Getpid()}
 	message.Contents = stageInfo
-	connection, err := net.Dial("tcp", masterAddress)
+	logMessage("Dialing master...")
+	connection, err := net.DialTimeout("tcp", masterAddress, 2*time.Second)
+	logMessage("Done dialing master...")
 	if err != nil {
 		panic(err)
 	}
