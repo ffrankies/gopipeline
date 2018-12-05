@@ -27,6 +27,7 @@ func decodeInput(decoder *gob.Decoder, registerType interface{}) (input interfac
 
 // executeStage executes the function this stage is responsible for, and returns the result as a message
 func executeStage(functionList []types.AnyFunc, position int, stageID string, input interface{}) *types.Message {
+	logPrint("Executing stage...")
 	message := new(types.Message)
 	var result interface{}
 	timerStart := time.Now()
