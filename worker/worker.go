@@ -66,9 +66,7 @@ func sendInfoToMaster(masterAddress string, myID string, myAddress string) {
 	message.Description = common.MsgStageInfo
 	stageInfo := types.MessageStageInfo{Address: myAddress, PID: os.Getpid()}
 	message.Contents = stageInfo
-	logMessage("Dialing master...")
 	connection, err := net.DialTimeout("tcp", masterAddress, 2*time.Second)
-	logMessage("Done dialing master...")
 	if err != nil {
 		panic(err)
 	}
