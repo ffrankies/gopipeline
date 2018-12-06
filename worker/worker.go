@@ -20,6 +20,9 @@ var StageID string
 // WorkerStatistics is the performance statistics of this worker process
 var WorkerStatistics = new(types.WorkerStats)
 
+// connections is the list of connections to the next nodes
+var connections = NewConnections()
+
 // userHomeDir returns the current user's home directory
 func userHomeDir() string {
 	usr, err := user.Current()
@@ -83,42 +86,42 @@ func sendInfoToMaster(masterAddress string, myID string, myAddress string) {
 func runStage(options *common.WorkerOptions, functionList []types.AnyFunc, listener net.Listener,
 	registerType interface{}) {
 	isLastStage := options.Position == len(functionList)-1
-	var nextNodeAddress string
-	if !isLastStage {
-		nextNodeAddress = receiveAddressOfNextNode(listener)
-	}
+	// var nextNodeAddress string
+	// if !isLastStage {
+	// 	nextNodeAddress = receiveAddressOfNextNode(listener)
+	// 	connections.AddConnection(nextNodeAddress)
+	// }
 	// Get data from previous worker, process it, and send results to the next worker
 	logPrint("My position is " + strconv.Itoa(options.Position))
 	if options.Position == 0 {
-		waitForStartCommand(listener)
-		runFirstStage(nextNodeAddress, functionList, options.StageID, registerType)
+		// waitForStartCommand(listener)
+		runFirstStage(listener, functionList, options.StageID, registerType)
 	} else if isLastStage {
 		runLastStage(listener, functionList, options.StageID, registerType)
 	} else {
-		runIntermediateStage(listener, nextNodeAddress, functionList, options.StageID, options.Position, registerType)
+		runIntermediateStage(listener, functionList, options.StageID, options.Position, registerType)
 	}
 }
 
-// receiveAddressOfNextNode listens for a message on the listener, assumes it is from master and contains the address
-// of the next code, and parses it as such
-func receiveAddressOfNextNode(listener net.Listener) string {
-	logPrint("Received address of next node")
-	message := new(types.Message)
-	connection, err := listener.Accept()
-	defer connection.Close()
-	if err != nil {
-		panic(err)
-	}
-	decoder := gob.NewDecoder(connection)
-	decoder.Decode(message)
-	if message.Description == common.MsgNextStageAddr {
-		nextNodeAddress := (message.Contents).(string)
-		return nextNodeAddress
-	}
-	logMessage("Received invalid message from " + message.Sender + " of type: " + strconv.Itoa(message.Description))
-	logPrint("")
-	return ""
-}
+// // receiveAddressOfNextNode listens for a message on the listener, assumes it is from master and contains the address
+// // of the next code, and parses it as such
+// func receiveAddressOfNextNode(listener net.Listener) string {
+// 	logPrint("Received address of next node")
+// 	message := new(types.Message)
+// 	connection, err := listener.Accept()
+// 	defer connection.Close()
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	decoder := gob.NewDecoder(connection)
+// 	decoder.Decode(message)
+// 	if message.Description == common.MsgAddNextStageAddr {
+// 		nextNodeAddress := (message.Contents).(string)
+// 		return nextNodeAddress
+// 	}
+// 	logMessage("Received invalid message from " + message.Sender + " of type: " + strconv.Itoa(message.Description))
+// 	return ""
+// }
 
 // Run the worker routine
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc, registerType interface{}) {

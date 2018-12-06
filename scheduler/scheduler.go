@@ -44,8 +44,8 @@ func (schedule *Schedule) Static(functionList []types.AnyFunc) {
 	density := schedule.CalculateFunctionDensity(functionList)
 	counter := 0
 	schedulingNode := schedule.freeNodeList.Pop()
-	for _, function := range functionList {
-		schedule.AssignStageToNode(function, schedulingNode)
+	for index := range functionList {
+		schedule.AssignStageToNode(index, schedulingNode)
 		counter++
 		if counter == density {
 			counter = 0
@@ -67,22 +67,24 @@ func (schedule *Schedule) CalculateFunctionDensity(functionList []types.AnyFunc)
 }
 
 // AssignStageToFreeNode assigns a single pipeline stage to a single free node
-func (schedule *Schedule) AssignStageToFreeNode(function types.AnyFunc) {
+func (schedule *Schedule) AssignStageToFreeNode(functionIndex int) *types.PipelineStage {
 	if schedule.freeNodeList.Length() == 0 {
 		panic("FATAL ERROR: There are no free nodes to assign this stage to")
 	}
 	schedulingNode := schedule.freeNodeList.Pop()
-	schedule.AssignStageToNode(function, schedulingNode)
+	pipelineStage := schedule.AssignStageToNode(functionIndex, schedulingNode)
+	return pipelineStage
 }
 
 // AssignStageToNode assigns a single pipeline stage (function) to a single node
-func (schedule *Schedule) AssignStageToNode(function types.AnyFunc, pipelineNode *types.PipelineNode) {
+func (schedule *Schedule) AssignStageToNode(functionIndex int, pipelineNode *types.PipelineNode) *types.PipelineStage {
 	_, foundInList := schedule.NodeList.FindNode(pipelineNode.Address)
-	pipelineStage := schedule.StageList.AddStage(pipelineNode.Address, schedule.StageList.Length())
+	pipelineStage := schedule.StageList.AddStage(pipelineNode.Address, functionIndex)
 	pipelineNode.AddStage(pipelineStage)
 	if foundInList == false {
 		schedule.NodeList.AddNode(pipelineNode)
 	}
+	return pipelineStage
 }
 
 // UpdateStageStats updates the worker statistics for a given stage from an incoming message
@@ -141,7 +143,7 @@ func buildWorkerCommand(program string, masterAddress string, stage *types.Pipel
 	return command
 }
 
-// EstablishInitialWorkerCommunication establishes initial communication between workers by telling them the address
+// EstablishWorkerCommunication establishes initial communication between workers by telling them the address
 // of the next worker in the pipeline
 func (schedule *Schedule) EstablishWorkerCommunication() {
 	numPositions := schedule.StageList.Length()
@@ -156,7 +158,7 @@ func (schedule *Schedule) EstablishWorkerCommunication() {
 func sendNextWorkerAddress(currentWorker *types.PipelineStage, nextWorker *types.PipelineStage) {
 	message := new(types.Message)
 	message.Sender = "0"
-	message.Description = common.MsgNextStageAddr
+	message.Description = common.MsgAddNextStageAddr
 	message.Contents = nextWorker.NetAddress
 	fmt.Println("Setting up connection to:", currentWorker.NetAddress)
 	connection, err := net.Dial("tcp", currentWorker.NetAddress)
@@ -171,7 +173,7 @@ func sendNextWorkerAddress(currentWorker *types.PipelineStage, nextWorker *types
 
 // Dynamic does dynamic scheduling of the pipeline stages on the available nodes, with the aim of increasing
 // throughput and memory utilization
-func (schedule *Schedule) Dynamic() {
+func (schedule *Schedule) Dynamic(program string, masterAddress string) {
 	for {
 		time.Sleep(1 * time.Second)
 		bottleneck := schedule.StageList.FindBottleneck()
@@ -179,6 +181,7 @@ func (schedule *Schedule) Dynamic() {
 			fmt.Println("There is no bottleneck")
 		} else {
 			fmt.Println("Found a bottleneck at", bottleneck)
+			schedule.scaleStage(bottleneck, program, masterAddress)
 		}
 	}
 }

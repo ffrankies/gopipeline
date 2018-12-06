@@ -4,6 +4,8 @@ import (
 	"encoding/gob"
 	"net"
 
+	"github.com/ffrankies/gopipeline/internal/common"
+
 	"github.com/ffrankies/gopipeline/types"
 )
 
@@ -18,12 +20,16 @@ func runLastStage(listener net.Listener, functionList []types.AnyFunc, myID stri
 		}
 		decoder := gob.NewDecoder(connectionFromPreviousWorker)
 		for {
-			input, err := decodeInput(decoder, registerType)
+			input, messageDesc, err := decodeInput(decoder, registerType)
 			if err != nil {
 				break
 			}
-			queue.Push(input)
-			WorkerStatistics.UpdateBacklog(queue.GetLength())
+			if messageDesc == common.MsgStageResult {
+				queue.Push(input)
+				WorkerStatistics.UpdateBacklog(queue.GetLength())
+			} else {
+				logMessage("ERROR: Last stage received unexpected message: " + string(messageDesc))
+			}
 		}
 	}
 }

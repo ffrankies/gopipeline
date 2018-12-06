@@ -10,7 +10,7 @@ type PipelineStageList struct {
 	List         []*PipelineStage // The list of pipeline stages
 	counter      int              // Used to set a counter-type ID to new stages
 	counterMutex sync.Mutex       // Ensures that each stage's ID is unique
-	maxPosition  int              // The maximum position of the given stages
+	MaxPosition  int              // The maximum position of the given stages
 }
 
 // NewPipelineStageList creates a new pipeline stage list with an empty list of stages and a nextID of 0
@@ -26,8 +26,8 @@ func (stageList *PipelineStageList) AddStage(host string, position int) *Pipelin
 	stageList.counter++
 	stage := newPipelineStage(host, position, strconv.Itoa(stageList.counter))
 	stageList.List = append(stageList.List, stage)
-	if position > stageList.maxPosition {
-		stageList.maxPosition = position
+	if position > stageList.MaxPosition {
+		stageList.MaxPosition = position
 	}
 	stageList.counterMutex.Unlock()
 	return stage
@@ -76,11 +76,11 @@ func (stageList *PipelineStageList) WaitUntilAllListenerPortsUpdated() {
 func (stageList *PipelineStageList) FindBottleneck() int {
 	bottleneckPosition := -1
 	bottleneckValue := -1.0
-	for position := 0; position <= stageList.maxPosition; position++ {
+	for position := 0; position <= stageList.MaxPosition; position++ {
 		currentPositionExecutionTime := stageList.AverageExecutionTime(position)
 		nextPositionExecutionTime := float64(0.0)
 		previousPositionExecutionTime := float64(0.0)
-		if position != stageList.maxPosition { // Check if slower than next
+		if position != stageList.MaxPosition { // Check if slower than next
 			nextPositionExecutionTime = stageList.AverageExecutionTime(position + 1)
 			if nextPositionExecutionTime > 0.0 && currentPositionExecutionTime > 1.5*nextPositionExecutionTime {
 				difference := currentPositionExecutionTime - nextPositionExecutionTime

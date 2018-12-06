@@ -112,5 +112,5 @@ func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	fmt.Println("=====Setting up communication between workers=====")
 	schedule.EstablishWorkerCommunication()
 	startWorkers(schedule)
-	schedule.Dynamic()
+	schedule.Dynamic(options.Program, masterAddress)
 }
