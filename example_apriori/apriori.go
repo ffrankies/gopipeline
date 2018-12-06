@@ -226,7 +226,7 @@ func BuildSuccessiveSets(originalSetList *SetList, currentSetList *SetList) *Set
 func main() {
 	functionList := make([]types.AnyFunc, 0)
 	functionList = append(functionList, Generate)
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 4; i++ {
 		functionList = append(functionList, NextIteration)
 	}
 	gopipeline.Run(functionList, Parameters{})
