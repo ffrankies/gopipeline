@@ -21,9 +21,11 @@ func (schedule *Schedule) scaleStage(position int, program string, masterAddress
 	}
 	newStage := schedule.AssignStageToFreeNode(position)
 	schedule.startStage(newStage, program, masterAddress)
+	fmt.Println("Waiting for worker to send info...")
 	if err := schedule.waitForWorkerToSendInfo(newStage); err != nil {
 		panic(err)
 	}
+	fmt.Println("Done waiting for worker to send info...")
 	schedule.setUpNewWorkerCommunication(newStage)
 	// TODO(): also scale on underutilized nodes
 }
@@ -33,12 +35,14 @@ func (schedule *Schedule) waitForWorkerToSendInfo(stage *types.PipelineStage) er
 	for stage.PID == -1 {
 		// Busy wait lol
 	}
+	fmt.Println("PID has been updated")
 	if stage.PID == -2 {
 		return errors.New("ERROR: Stage could not be started")
 	}
 	for stage.NetAddress == "" {
 		// Busy wait lol
 	}
+	fmt.Println("NetAddress has been updated")
 	return nil
 }
 
