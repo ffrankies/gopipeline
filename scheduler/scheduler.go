@@ -176,12 +176,12 @@ func sendNextWorkerAddress(currentWorker *types.PipelineStage, nextWorker *types
 func (schedule *Schedule) Dynamic(program string, masterAddress string) {
 	for {
 		time.Sleep(1 * time.Second)
-		bottleneck := schedule.StageList.FindBottleneck()
+		bottleneck, numToScale := schedule.StageList.FindBottleneck()
 		if bottleneck == -1 {
 			fmt.Println("There is no bottleneck")
 		} else {
 			fmt.Println("Found a bottleneck at", bottleneck)
-			schedule.scaleStage(bottleneck, program, masterAddress)
+			schedule.scaleStage(bottleneck, numToScale, program, masterAddress)
 		}
 	}
 }

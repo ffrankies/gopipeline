@@ -73,8 +73,8 @@ func (stageList *PipelineStageList) WaitUntilAllListenerPortsUpdated() {
 }
 
 // FindBottleneck attempts to find the stage position that executes much slower than its neighbors
-func (stageList *PipelineStageList) FindBottleneck() int {
-	bottleneckPosition := -1
+func (stageList *PipelineStageList) FindBottleneck() (bottleneckPosition int, scaleNumber int) {
+	bottleneckPosition = -1
 	bottleneckValue := -1.0
 	for position := 0; position <= stageList.MaxPosition; position++ {
 		currentPositionExecutionTime := stageList.AverageExecutionTime(position)
@@ -87,6 +87,7 @@ func (stageList *PipelineStageList) FindBottleneck() int {
 				if bottleneckValue < difference {
 					bottleneckValue = difference
 					bottleneckPosition = position
+					scaleNumber = int(currentPositionExecutionTime / nextPositionExecutionTime)
 					continue
 				}
 			}
@@ -98,12 +99,13 @@ func (stageList *PipelineStageList) FindBottleneck() int {
 				if bottleneckValue < difference {
 					bottleneckValue = difference
 					bottleneckPosition = position
+					scaleNumber = int(currentPositionExecutionTime / nextPositionExecutionTime)
 					continue
 				}
 			}
 		}
 	}
-	return bottleneckPosition
+	return
 }
 
 // AverageExecutionTime calculates the average execution time given a stage's position

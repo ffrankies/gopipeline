@@ -12,22 +12,25 @@ import (
 )
 
 // scaleStage scales a Bottleneck stage out to a free node
-func (schedule *Schedule) scaleStage(position int, program string, masterAddress string) {
-	if position == -1 {
-		return
+func (schedule *Schedule) scaleStage(position int, numToScale int, program string, masterAddress string) {
+	numScaled := 0
+	for numScaled < numToScale {
+		if position == -1 {
+			return
+		}
+		// For now, only scale on free nodes
+		if schedule.freeNodeList.Length() < 1 {
+			return
+		}
+		newStage := schedule.AssignStageToFreeNode(position)
+		schedule.startStage(newStage, program, masterAddress)
+		fmt.Println("Waiting for worker to send info...")
+		if err := schedule.waitForWorkerToSendInfo(newStage); err != nil {
+			panic(err)
+		}
+		fmt.Println("Done waiting for worker to send info...")
+		schedule.setUpNewWorkerCommunication(newStage)
 	}
-	// For now, only scale on free nodes
-	if schedule.freeNodeList.Length() < 1 {
-		return
-	}
-	newStage := schedule.AssignStageToFreeNode(position)
-	schedule.startStage(newStage, program, masterAddress)
-	fmt.Println("Waiting for worker to send info...")
-	if err := schedule.waitForWorkerToSendInfo(newStage); err != nil {
-		panic(err)
-	}
-	fmt.Println("Done waiting for worker to send info...")
-	schedule.setUpNewWorkerCommunication(newStage)
 	// TODO(): also scale on underutilized nodes
 }
 
