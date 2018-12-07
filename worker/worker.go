@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/user"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/ffrankies/gopipeline/internal/common"
@@ -17,11 +18,17 @@ import (
 // StageID is the ID of this worker
 var StageID string
 
+// StageNumber the number of this stage
+var StageNumber string
+
 // WorkerStatistics is the performance statistics of this worker process
 var WorkerStatistics = new(types.WorkerStats)
 
 // connections is the list of connections to the next nodes
 var connections = NewConnections()
+
+// logging mutex
+var logMutex = &sync.Mutex{}
 
 // userHomeDir returns the current user's home directory
 func userHomeDir() string {
@@ -35,7 +42,7 @@ func userHomeDir() string {
 // opens a log file in the user's home directory
 func openLogFile() (fp *os.File) {
 	userPath := userHomeDir()
-	filePath := userPath + "/gopipeline.log"
+	filePath := userPath + "/gopipeline" + StageNumber + ".log"
 	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		log.Fatal(err)
@@ -45,11 +52,13 @@ func openLogFile() (fp *os.File) {
 
 // logPrint prints a message to the log file
 func logPrint(message string) {
+	logMutex.Lock()
 	f := openLogFile()
 	defer f.Close()
 	log.SetOutput(f)
-	message = "Worker " + StageID + ": " + message
+	message = "Worker " + StageID + " | Stage " + StageNumber + ": " + message
 	log.Println(message)
+	logMutex.Unlock()
 }
 
 // logMessage prints a message to the console AND the log file
@@ -86,11 +95,6 @@ func sendInfoToMaster(masterAddress string, myID string, myAddress string) {
 func runStage(options *common.WorkerOptions, functionList []types.AnyFunc, listener net.Listener,
 	registerType interface{}) {
 	isLastStage := options.Position == len(functionList)-1
-	// var nextNodeAddress string
-	// if !isLastStage {
-	// 	nextNodeAddress = receiveAddressOfNextNode(listener)
-	// 	connections.AddConnection(nextNodeAddress)
-	// }
 	// Get data from previous worker, process it, and send results to the next worker
 	logPrint("My position is " + strconv.Itoa(options.Position))
 	if options.Position == 0 {
@@ -103,30 +107,10 @@ func runStage(options *common.WorkerOptions, functionList []types.AnyFunc, liste
 	}
 }
 
-// // receiveAddressOfNextNode listens for a message on the listener, assumes it is from master and contains the address
-// // of the next code, and parses it as such
-// func receiveAddressOfNextNode(listener net.Listener) string {
-// 	logPrint("Received address of next node")
-// 	message := new(types.Message)
-// 	connection, err := listener.Accept()
-// 	defer connection.Close()
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	decoder := gob.NewDecoder(connection)
-// 	decoder.Decode(message)
-// 	if message.Description == common.MsgAddNextStageAddr {
-// 		nextNodeAddress := (message.Contents).(string)
-// 		return nextNodeAddress
-// 	}
-// 	logMessage("Received invalid message from " + message.Sender + " of type: " + strconv.Itoa(message.Description))
-// 	return ""
-// }
-
 // Run the worker routine
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc, registerType interface{}) {
 	StageID = options.StageID
-
+	StageNumber = strconv.Itoa(options.Position)
 	go trackStatsGoroutine(options.MasterAddress, options.StageID)
 
 	// Listens for both the master and any other connection
