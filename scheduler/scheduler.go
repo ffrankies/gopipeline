@@ -185,3 +185,26 @@ func (schedule *Schedule) Dynamic(program string, masterAddress string) {
 		}
 	}
 }
+
+//checkMemory finds the memory available in the current node and the previous one
+func checkMemory(previousWorker *types.PipelineStage, currentWorker *types.PipelineStage) bool {
+	if currentWorker.Stats.WorkerMemoryUsage <= previousWorker.Stats.NodeAvailableMemory {
+		return true
+	}
+	return false
+}
+
+// moveStages moves the data for processing from the current node to the previous node if it
+// has memory available for usage
+func (schedule *Schedule) moveStages(previousWorker *types.PipelineStage, currentWorker *types.PipelineStage, program string, masterAddress string) {
+	for {
+		time.Sleep(1 * time.Second)
+		checkMemory(previousWorker, currentWorker)
+		if checkMemory(previousWorker, currentWorker) {
+			schedule.startStage(previousWorker, program, masterAddress)
+			sshConnection := types.NewSSHConnection(previousWorker.Host, schedule.sshUser, schedule.sshPort)
+			command := "kill " + strconv.Itoa(previousWorker.PID)
+			sshConnection.RunCommand(command, nil, nil)
+		}
+	}
+}
