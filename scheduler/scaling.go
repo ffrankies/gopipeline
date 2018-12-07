@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/ffrankies/gopipeline/internal/common"
 	"github.com/ffrankies/gopipeline/types"
@@ -33,14 +34,14 @@ func (schedule *Schedule) scaleStage(position int, program string, masterAddress
 // waitForWorkerToSendInfo busy waits until the worker sends its info
 func (schedule *Schedule) waitForWorkerToSendInfo(stage *types.PipelineStage) error {
 	for stage.PID == -1 {
-		// Busy wait lol
+		time.Sleep(10 * time.Millisecond)
 	}
 	fmt.Println("PID has been updated")
 	if stage.PID == -2 {
 		return errors.New("ERROR: Stage could not be started")
 	}
 	for stage.NetAddress == "" {
-		// Busy wait lol
+		time.Sleep(10 * time.Millisecond)
 	}
 	fmt.Println("NetAddress has been updated")
 	return nil
