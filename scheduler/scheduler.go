@@ -201,9 +201,12 @@ func (schedule *Schedule) moveStages(previousWorker *types.PipelineStage, curren
 		time.Sleep(1 * time.Second)
 		checkMemory(previousWorker, currentWorker)
 		if checkMemory(previousWorker, currentWorker) {
+			//Set up a new node on the previous worker
 			schedule.startStage(previousWorker, program, masterAddress)
-			sshConnection := types.NewSSHConnection(previousWorker.Host, schedule.sshUser, schedule.sshPort)
-			command := "kill " + strconv.Itoa(previousWorker.PID)
+
+			//Kill the node on the current worker
+			sshConnection := types.NewSSHConnection(currentWorker.Host, schedule.sshUser, schedule.sshPort)
+			command := "kill " + strconv.Itoa(currentWorker.PID)
 			sshConnection.RunCommand(command, nil, nil)
 		}
 	}
