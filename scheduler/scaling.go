@@ -23,29 +23,29 @@ func (schedule *Schedule) scaleStage(position int, numToScale int, program strin
 		if schedule.freeNodeList.Length() < 1 {
 			return
 		}
-		newStage := schedule.AssignStageToFreeNode(position)
-		schedule.startStage(newStage, program, masterAddress)
+		newWorker := schedule.AssignWorkerToFreeNode(position)
+		schedule.startWorker(newWorker, program, masterAddress)
 		fmt.Println("Waiting for worker to send info...")
-		if err := schedule.waitForWorkerToSendInfo(newStage); err != nil {
+		if err := schedule.waitForWorkerToSendInfo(newWorker); err != nil {
 			panic(err)
 		}
 		fmt.Println("Done waiting for worker to send info...")
-		schedule.setUpNewWorkerCommunication(newStage)
+		schedule.setUpNewWorkerCommunication(newWorker)
 		numScaled++
 	}
 	// TODO(): also scale on underutilized nodes
 }
 
 // waitForWorkerToSendInfo busy waits until the worker sends its info
-func (schedule *Schedule) waitForWorkerToSendInfo(stage *types.PipelineStage) error {
-	for stage.PID == -1 {
+func (schedule *Schedule) waitForWorkerToSendInfo(worker *types.Worker) error {
+	for worker.PID == -1 {
 		time.Sleep(10 * time.Millisecond)
 	}
 	fmt.Println("PID has been updated")
-	if stage.PID == -2 {
-		return errors.New("ERROR: Stage could not be started")
+	if worker.PID == -2 {
+		return errors.New("ERROR: Worker could not be started")
 	}
-	for stage.NetAddress == "" {
+	for worker.Address == "" {
 		time.Sleep(10 * time.Millisecond)
 	}
 	fmt.Println("NetAddress has been updated")
@@ -53,29 +53,27 @@ func (schedule *Schedule) waitForWorkerToSendInfo(stage *types.PipelineStage) er
 }
 
 // setUpNewWorkerCommunication communicates the next node information to the new stage, and the stage before it
-func (schedule *Schedule) setUpNewWorkerCommunication(newStage *types.PipelineStage) {
-	if newStage.Position != schedule.StageList.MaxPosition {
-		for _, stage := range schedule.StageList.List {
-			if stage.Position == newStage.Position+1 {
-				sendNextWorkerAddress(newStage, stage)
-			}
-		}
-		for _, stage := range schedule.StageList.List {
-			if stage.Position == newStage.Position-1 {
-				sendNextWorkerAddress(stage, newStage)
-			}
+func (schedule *Schedule) setUpNewWorkerCommunication(newWorker *types.Worker) {
+	if newWorker.Stage != schedule.StageList.MaxPosition {
+		for _, worker := range schedule.StageList.FindByPosition(newWorker.Stage + 1).Workers {
+			sendNextWorkerAddress(newWorker, worker)
 		}
 	}
-	if newStage.Position == 0 {
+	if newWorker.Stage != 0 {
+		for _, worker := range schedule.StageList.FindByPosition(newWorker.Stage - 1).Workers {
+			sendNextWorkerAddress(worker, newWorker)
+		}
+	}
+	if newWorker.Stage == 0 {
 		message := new(types.Message)
 		message.Sender = "0"
 		message.Description = common.MsgStartWorker
-		connection, err := net.Dial("tcp", newStage.NetAddress)
+		connection, err := net.Dial("tcp", newWorker.Address)
 		if err != nil {
 			panic(err)
 		}
 		encoder := gob.NewEncoder(connection)
 		encoder.Encode(message)
-		fmt.Println("Started stage:", newStage.StageID)
+		fmt.Println("Started worker:", newWorker.ID)
 	}
 }
