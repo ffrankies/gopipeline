@@ -26,6 +26,16 @@ func (nodeList *PipelineNodeList) FindNode(nodeAddress string) (pipelineNode *Pi
 	return
 }
 
+// FindNodeWithEnoughMemory finds a node with enough memory to satisfy the requirement of the given stage
+func (nodeList *PipelineNodeList) FindNodeWithEnoughMemory(requirement uint64) *PipelineNode {
+	for _, node := range nodeList.list {
+		if node.HasEnoughMemory(requirement) {
+			return node
+		}
+	}
+	return nil
+}
+
 // AddNode will add a PipelineNode to the PipelineNodeList
 func (nodeList *PipelineNodeList) AddNode(node *PipelineNode) {
 	node.Position = len(nodeList.list) + 1
