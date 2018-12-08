@@ -37,6 +37,19 @@ func (stage *PipelineStage) AverageExecutionTime() float64 {
 	return totalDuration / float64(len(stage.Workers))
 }
 
+// MemoryRequirement calculates the memory requirements of workers running this stage, by fining the maximum memory
+// used by workers running this stage
+func (stage *PipelineStage) MemoryRequirement() uint64 {
+	maxMemoryUsed := uint64(0)
+	for _, worker := range stage.Workers {
+		memoryUsed := worker.Stats.WorkerMemoryUsage
+		if memoryUsed > maxMemoryUsed {
+			maxMemoryUsed = memoryUsed
+		}
+	}
+	return maxMemoryUsed
+}
+
 // String converts the PipelineStage struct into a String
 func (stage *PipelineStage) String() string {
 	pipelineStageString := "PipelineStage {\n"

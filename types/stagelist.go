@@ -133,3 +133,9 @@ func (stageList *PipelineStageList) AverageExecutionTime(position int) float64 {
 	stage := stageList.FindByPosition(position)
 	return stage.AverageExecutionTime()
 }
+
+// MemoryRequirement calculates the memory requirements of the workers running the stage at the given position
+func (stageList *PipelineStageList) MemoryRequirement(position int) uint64 {
+	stage := stageList.FindByPosition(position)
+	return stage.MemoryRequirement()
+}
