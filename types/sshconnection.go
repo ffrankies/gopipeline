@@ -1,4 +1,4 @@
-package master
+package types
 
 import (
 	"fmt"
@@ -38,7 +38,7 @@ func NewSSHConnection(address string, remoteUser string, port int) *SSHConnectio
 }
 
 // RunCommand runs a single command through the SSH Connection, does not wait for results
-func (conn *SSHConnection) RunCommand(command string) {
+func (conn *SSHConnection) RunCommand(command string, callback CallbackFunc, args ...interface{}) {
 	session, err := conn.client.NewSession()
 	if err != nil {
 		panic(err)
@@ -47,6 +47,9 @@ func (conn *SSHConnection) RunCommand(command string) {
 	fmt.Println(string(output))
 	if err != nil {
 		fmt.Println(err.Error())
+		if callback != nil {
+			callback(args[0])
+		}
 	}
 	if err := conn.Close(); err != nil {
 		panic(err)

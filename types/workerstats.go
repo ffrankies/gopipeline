@@ -64,6 +64,13 @@ func (workerStats *WorkerStats) UpdateMemoryUsage(memoryUsage uint64, availableM
 	workerStats.lock.Unlock()
 }
 
+// UpdateBacklog updates the backlog with the number of elements in the input queue
+func (workerStats *WorkerStats) UpdateBacklog(backlog int) {
+	workerStats.lock.Lock()
+	workerStats.Backlog = backlog
+	workerStats.lock.Unlock()
+}
+
 // Copy returns a copy of the WorkerStats struct
 func (workerStats *WorkerStats) Copy() *WorkerStats {
 	workerStatsCopy := new(WorkerStats)

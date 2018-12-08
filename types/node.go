@@ -1,47 +1,13 @@
 package types
 
-// PipelineNodeList contains the list of user-provided nodes
-type PipelineNodeList struct {
-	list []*PipelineNode // The list of nodes
-}
-
-// NewPipelineNodeList creates a new empty PipelineNodeList
-func NewPipelineNodeList() *PipelineNodeList {
-	pipelineNodeList := new(PipelineNodeList)
-	return pipelineNodeList
-}
-
-// FindNode finds a particular PipelineNode in the PipelineNodeList. If the Node is not found,
-// findNode creates a new PipelineNode
-func (nodeList *PipelineNodeList) FindNode(nodeAddress string) (pipelineNode *PipelineNode, foundInList bool) {
-	for _, node := range nodeList.list {
-		if node.Address == nodeAddress {
-			pipelineNode = node
-			foundInList = true
-			return
-		}
-	}
-	pipelineNode = NewPipelineNode(nodeAddress, len(nodeList.list))
-	foundInList = false
-	return
-}
-
-// AddNode will add a PipelineNode to the PipelineNodeList
-func (nodeList *PipelineNodeList) AddNode(node *PipelineNode) {
-	nodeList.list = append(nodeList.list, node)
-}
-
-// Length returns the number of nodes in the PipelineNodeList
-func (nodeList *PipelineNodeList) Length() int {
-	return len(nodeList.list)
-}
+import "math"
 
 // PipelineNode struct refers to a computational PipelineNode. A PipelineNode can be assigned multiple functions, or
 // pipeline stages.
 type PipelineNode struct {
-	Address        string           // The internet address of the PipelineNode. Can be DNS, IPv4 or IPv6
-	Position       int              // The position of this PipelineNode in the PipelineNodelist
-	PipelineStages []*PipelineStage // The pipeline stages running on this PipelineNode
+	Address  string    // The internet address of the PipelineNode. Can be DNS, IPv4 or IPv6
+	Position int       // The position of this PipelineNode in the PipelineNodelist
+	Workers  []*Worker // The workers executing pipeline stages running on this PipelineNode
 }
 
 // NewPipelineNode creates a new PipelineNode object
@@ -52,7 +18,30 @@ func NewPipelineNode(address string, position int) *PipelineNode {
 	return pipelineNode
 }
 
-// AddStage adds a PipelineStage to the PipelineNode's PipelineStages list
-func (pipelineNode *PipelineNode) AddStage(pipelineStage *PipelineStage) {
-	pipelineNode.PipelineStages = append(pipelineNode.PipelineStages, pipelineStage)
+// AddWorker adds a PipelineStage to the PipelineNode's workers list
+func (pipelineNode *PipelineNode) AddWorker(worker *Worker) {
+	pipelineNode.Workers = append(pipelineNode.Workers, worker)
+}
+
+// AvailableMemory finds the available memory on this node by finding the minimum AvailableMemory parameter on its
+// workers
+func (pipelineNode *PipelineNode) AvailableMemory() uint64 {
+	minAvailableMemory := uint64(math.MaxUint64)
+	for _, worker := range pipelineNode.Workers {
+		availableMemory := worker.Stats.NodeAvailableMemory
+		if availableMemory < minAvailableMemory {
+			minAvailableMemory = availableMemory
+		}
+	}
+	return minAvailableMemory
+}
+
+// HasEnoughMemory returns true if the node has enough available memory to contain a worker with the given memory
+// requirements
+func (pipelineNode *PipelineNode) HasEnoughMemory(requirement uint64) bool {
+	availableMemory := pipelineNode.AvailableMemory()
+	if availableMemory > requirement {
+		return true
+	}
+	return false
 }
