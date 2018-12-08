@@ -99,7 +99,7 @@ func (stageList *PipelineStageList) FindBottleneck() (bottleneckPosition int, sc
 				if bottleneckValue < difference {
 					bottleneckValue = difference
 					bottleneckPosition = position
-					scaleNumber = int(currentPositionExecutionTime / nextPositionExecutionTime)
+					scaleNumber = int(currentPositionExecutionTime / previousPositionExecutionTime)
 					continue
 				}
 			}
