@@ -37,7 +37,6 @@ func receiveConnectionsGoRoutine(schedule *scheduler.Schedule, listener net.List
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("Accepted a new connection from ", connection.RemoteAddr().String())
 		go handleConnectionFromWorker(schedule, connection)
 	}
 }
