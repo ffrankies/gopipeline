@@ -65,14 +65,14 @@ func startWorkers(schedule *scheduler.Schedule) {
 	message := new(types.Message)
 	message.Sender = "0"
 	message.Description = common.MsgStartWorker
-	firstStage := schedule.StageList.FindByPosition(0)
-	connection, err := net.Dial("tcp", firstStage.NetAddress)
+	firstWorker := schedule.StageList.FindWorker("1")
+	connection, err := net.Dial("tcp", firstWorker.Address)
 	if err != nil {
 		panic(err)
 	}
 	encoder := gob.NewEncoder(connection)
 	encoder.Encode(message)
-	fmt.Println("Started stage:", firstStage.StageID)
+	fmt.Println("Started worker:", firstWorker.ID)
 }
 
 // setUpSignalHandler sets up a signal handler for clean exit on termination
@@ -86,9 +86,11 @@ func setUpSignalHandler(schedule *scheduler.Schedule, config *Config) {
 			fmt.Println("Performing cleanup...")
 			schedule.StageList.WaitUntilAllListenerPortsUpdated()
 			for _, stage := range schedule.StageList.List {
-				sshConnection := types.NewSSHConnection(stage.Host, config.SSHUser, config.SSHPort)
-				command := "kill " + strconv.Itoa(stage.PID)
-				sshConnection.RunCommand(command, nil, nil)
+				for _, worker := range stage.Workers {
+					sshConnection := types.NewSSHConnection(worker.Host, config.SSHUser, config.SSHPort)
+					command := "kill " + strconv.Itoa(worker.PID)
+					sshConnection.RunCommand(command, nil, nil)
+				}
 			}
 			os.Exit(0)
 		}
@@ -99,7 +101,8 @@ func setUpSignalHandler(schedule *scheduler.Schedule, config *Config) {
 // This involves setting up the pipeline stages, and starting worker processes on each node in the pipeline.
 func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
 	config := NewConfig(options.ConfigPath)
-	schedule := scheduler.NewSchedule(config.NodeList, config.SSHUser, config.SSHPort, config.UserPath)
+	schedule := scheduler.NewSchedule(
+		config.NodeList, config.SSHUser, config.SSHPort, config.UserPath, len(functionList))
 	setUpSignalHandler(schedule, config)
 	schedule.Static(functionList)
 	masterAddress, err := startListener(schedule)

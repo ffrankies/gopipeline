@@ -14,23 +14,24 @@ type PipelineStageList struct {
 }
 
 // NewPipelineStageList creates a new pipeline stage list with an empty list of stages and a nextID of 0
-func NewPipelineStageList() *PipelineStageList {
+func NewPipelineStageList(numStages int) *PipelineStageList {
 	pipelineStageList := new(PipelineStageList)
 	pipelineStageList.counter = 0
+	for position := 0; position < numStages; position++ {
+		stage := newPipelineStage(position)
+		pipelineStageList.List = append(pipelineStageList.List, stage)
+	}
+	pipelineStageList.MaxPosition = numStages - 1
 	return pipelineStageList
 }
 
-// AddStage adds a new PipelineStage to the PipelineStageList
-func (stageList *PipelineStageList) AddStage(host string, position int) *PipelineStage {
+// AddWorker registers a new Worker process with a given PipelineStage
+func (stageList *PipelineStageList) AddWorker(host string, position int) *Worker {
 	stageList.counterMutex.Lock()
 	stageList.counter++
-	stage := newPipelineStage(host, position, strconv.Itoa(stageList.counter))
-	stageList.List = append(stageList.List, stage)
-	if position > stageList.MaxPosition {
-		stageList.MaxPosition = position
-	}
+	worker := stageList.FindByPosition(position).AddWorker(strconv.Itoa(stageList.counter), host)
 	stageList.counterMutex.Unlock()
-	return stage
+	return worker
 }
 
 // Length returns the number of stages in the PipelineStageList
@@ -38,11 +39,25 @@ func (stageList *PipelineStageList) Length() int {
 	return len(stageList.List)
 }
 
-// Find loops through the stageList and returns the PipelineStage with a matching ID
-func (stageList *PipelineStageList) Find(id string) *PipelineStage {
+// FindStageWithWorker finds the stage that has a worker with the given ID
+func (stageList *PipelineStageList) FindStageWithWorker(id string) *PipelineStage {
 	for _, stage := range stageList.List {
-		if stage.StageID == id {
-			return stage
+		for _, worker := range stage.Workers {
+			if worker.ID == id {
+				return stage
+			}
+		}
+	}
+	return nil
+}
+
+// FindWorker loops through the workers in the stageList and returns the Worker with a matching ID
+func (stageList *PipelineStageList) FindWorker(id string) *Worker {
+	for _, stage := range stageList.List {
+		for _, worker := range stage.Workers {
+			if worker.ID == id {
+				return worker
+			}
 		}
 	}
 	return nil
@@ -65,18 +80,23 @@ func (stageList *PipelineStageList) WaitUntilAllListenerPortsUpdated() {
 	for allUpdated == false {
 		allUpdated = true
 		for _, stage := range stageList.List {
-			if stage.PID != -2 && (stage.NetAddress == "" || stage.PID == -1) {
-				allUpdated = false
+			for _, worker := range stage.Workers {
+				if worker.PID != -2 && (worker.Address == "" || worker.PID == -1) {
+					allUpdated = false
+				}
 			}
 		}
 	}
 }
 
 // FindBottleneck attempts to find the stage position that executes much slower than its neighbors
-func (stageList *PipelineStageList) FindBottleneck() int {
-	bottleneckPosition := -1
+func (stageList *PipelineStageList) FindBottleneck() (bottleneckPosition int, scaleNumber int) {
+	bottleneckPosition = -1
 	bottleneckValue := -1.0
 	for position := 0; position <= stageList.MaxPosition; position++ {
+		if stageList.FindByPosition(position).Scaled == true {
+			continue
+		}
 		currentPositionExecutionTime := stageList.AverageExecutionTime(position)
 		nextPositionExecutionTime := float64(0.0)
 		previousPositionExecutionTime := float64(0.0)
@@ -87,6 +107,7 @@ func (stageList *PipelineStageList) FindBottleneck() int {
 				if bottleneckValue < difference {
 					bottleneckValue = difference
 					bottleneckPosition = position
+					scaleNumber = int(currentPositionExecutionTime / nextPositionExecutionTime)
 					continue
 				}
 			}
@@ -98,23 +119,23 @@ func (stageList *PipelineStageList) FindBottleneck() int {
 				if bottleneckValue < difference {
 					bottleneckValue = difference
 					bottleneckPosition = position
+					scaleNumber = int(currentPositionExecutionTime / previousPositionExecutionTime)
 					continue
 				}
 			}
 		}
 	}
-	return bottleneckPosition
+	return
 }
 
 // AverageExecutionTime calculates the average execution time given a stage's position
 func (stageList *PipelineStageList) AverageExecutionTime(position int) float64 {
-	totalDuration := float64(0.0)
-	numberStages := float64(0.0)
-	for _, stage := range stageList.List {
-		if stage.Position == position {
-			totalDuration += float64(stage.Stats.ExecutionTime)
-			numberStages++
-		}
-	}
-	return totalDuration / numberStages
+	stage := stageList.FindByPosition(position)
+	return stage.AverageExecutionTime()
+}
+
+// MemoryRequirement calculates the memory requirements of the workers running the stage at the given position
+func (stageList *PipelineStageList) MemoryRequirement(position int) uint64 {
+	stage := stageList.FindByPosition(position)
+	return stage.MemoryRequirement()
 }

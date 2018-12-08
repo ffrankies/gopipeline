@@ -23,10 +23,10 @@ type Schedule struct {
 }
 
 // NewSchedule creates a new scheduler with empty node and stage lists, and populates the empty node list
-func NewSchedule(nodeList []string, SSHUser string, SSHPort int, SSHUserPath string) *Schedule {
+func NewSchedule(nodeList []string, SSHUser string, SSHPort int, SSHUserPath string, numStages int) *Schedule {
 	schedule := new(Schedule)
 	schedule.NodeList = types.NewPipelineNodeList()
-	schedule.StageList = types.NewPipelineStageList()
+	schedule.StageList = types.NewPipelineStageList(numStages)
 	schedule.freeNodeList = types.NewPipelineNodeList()
 	schedule.sshUser = SSHUser
 	schedule.sshPort = SSHPort
@@ -45,7 +45,7 @@ func (schedule *Schedule) Static(functionList []types.AnyFunc) {
 	counter := 0
 	schedulingNode := schedule.freeNodeList.Pop()
 	for index := range functionList {
-		schedule.AssignStageToNode(index, schedulingNode)
+		schedule.AssignWorkerToNode(index, schedulingNode)
 		counter++
 		if counter == density {
 			counter = 0
@@ -66,33 +66,44 @@ func (schedule *Schedule) CalculateFunctionDensity(functionList []types.AnyFunc)
 	return int(density)
 }
 
-// AssignStageToFreeNode assigns a single pipeline stage to a single free node
-func (schedule *Schedule) AssignStageToFreeNode(functionIndex int) *types.PipelineStage {
+// AssignWorkerToFreeNode assigns a single worker process to a single free node
+func (schedule *Schedule) AssignWorkerToFreeNode(position int) *types.Worker {
 	if schedule.freeNodeList.Length() == 0 {
 		panic("FATAL ERROR: There are no free nodes to assign this stage to")
 	}
 	schedulingNode := schedule.freeNodeList.Pop()
-	pipelineStage := schedule.AssignStageToNode(functionIndex, schedulingNode)
-	return pipelineStage
+	worker := schedule.AssignWorkerToNode(position, schedulingNode)
+	return worker
 }
 
-// AssignStageToNode assigns a single pipeline stage (function) to a single node
-func (schedule *Schedule) AssignStageToNode(functionIndex int, pipelineNode *types.PipelineNode) *types.PipelineStage {
+// AssignWorkerToUnderutilizedNode assigns a worker to a used node with enough unused memory
+func (schedule *Schedule) AssignWorkerToUnderutilizedNode(position int) *types.Worker {
+	memoryRequirement := schedule.StageList.MemoryRequirement(position)
+	schedulingNode := schedule.NodeList.FindNodeWithEnoughMemory(memoryRequirement)
+	if schedulingNode == nil {
+		return nil
+	}
+	worker := schedule.AssignWorkerToNode(position, schedulingNode)
+	return worker
+}
+
+// AssignWorkerToNode assigns a single worker process to a single node
+func (schedule *Schedule) AssignWorkerToNode(position int, pipelineNode *types.PipelineNode) *types.Worker {
 	_, foundInList := schedule.NodeList.FindNode(pipelineNode.Address)
-	pipelineStage := schedule.StageList.AddStage(pipelineNode.Address, functionIndex)
-	pipelineNode.AddStage(pipelineStage)
+	worker := schedule.StageList.AddWorker(pipelineNode.Address, position)
+	pipelineNode.AddWorker(worker)
 	if foundInList == false {
 		schedule.NodeList.AddNode(pipelineNode)
 	}
-	return pipelineStage
+	return worker
 }
 
 // UpdateStageStats updates the worker statistics for a given stage from an incoming message
 func (schedule *Schedule) UpdateStageStats(message *types.Message) {
-	stage := schedule.StageList.Find(message.Sender)
+	worker := schedule.StageList.FindWorker(message.Sender)
 	stageStats, ok := (message.Contents).(*types.WorkerStats)
 	if ok {
-		stage.Stats = stageStats
+		worker.Stats = stageStats
 	} else {
 		fmt.Println("ERROR: Could not convert message contents to WorkerStats")
 	}
@@ -101,11 +112,11 @@ func (schedule *Schedule) UpdateStageStats(message *types.Message) {
 // UpdateStageInfo updates the stage information for a given stage from an incoming message
 func (schedule *Schedule) UpdateStageInfo(message *types.Message) {
 	fmt.Println("Received worker info from", message.Sender)
-	stage := schedule.StageList.Find(message.Sender)
+	worker := schedule.StageList.FindWorker(message.Sender)
 	stageInfo, ok := (message.Contents).(types.MessageStageInfo)
 	if ok {
-		stage.NetAddress = stageInfo.Address
-		stage.PID = stageInfo.PID
+		worker.Address = stageInfo.Address
+		worker.PID = stageInfo.PID
 	} else {
 		fmt.Println("ERROR: Could not convert message contents to MessageStageInfo")
 	}
@@ -115,30 +126,32 @@ func (schedule *Schedule) UpdateStageInfo(message *types.Message) {
 func (schedule *Schedule) StartStages(program string, masterAddress string) {
 	fmt.Println("Starting GoPipeline workers")
 	for _, stage := range schedule.StageList.List {
-		schedule.startStage(stage, program, masterAddress)
+		for _, worker := range stage.Workers {
+			schedule.startWorker(worker, program, masterAddress)
+		}
 	}
 }
 
 // startStage starts a GoPipeline worker for a given stage
-func (schedule *Schedule) startStage(stage *types.PipelineStage, program string, masterAddress string) {
-	sshConnection := types.NewSSHConnection(stage.Host, schedule.sshUser, schedule.sshPort)
-	command := buildWorkerCommand(program, masterAddress, stage, schedule.sshUserPath)
-	fmt.Println("Running command:", command, "on node:", stage.Host)
-	go sshConnection.RunCommand(command, workerErrorCallback, stage)
+func (schedule *Schedule) startWorker(worker *types.Worker, program string, masterAddress string) {
+	sshConnection := types.NewSSHConnection(worker.Host, schedule.sshUser, schedule.sshPort)
+	command := buildWorkerCommand(program, masterAddress, worker, schedule.sshUserPath)
+	fmt.Println("Running command:", command, "on node:", worker.Host)
+	go sshConnection.RunCommand(command, workerErrorCallback, worker)
 }
 
 // workerErrorCallback is the callback for when a worker errors out and dies
 func workerErrorCallback(args ...interface{}) {
-	stage := args[0].(*types.PipelineStage)
-	stage.PID = -2 // Mark stage as errored out
+	worker := args[0].(*types.Worker)
+	worker.PID = -2 // Mark stage as errored out
 }
 
 // buildWorkerCommand builds the command with which to start a worker.
 // The User Path should have a "/" included in the path.
-func buildWorkerCommand(program string, masterAddress string, stage *types.PipelineStage, userpath string) string {
+func buildWorkerCommand(program string, masterAddress string, worker *types.Worker, userpath string) string {
 	command := userpath + program + " -address=" + masterAddress
-	command += " -id=" + stage.StageID
-	command += " -position=" + strconv.Itoa(stage.Position)
+	command += " -id=" + worker.ID
+	command += " -position=" + strconv.Itoa(worker.Stage)
 	command += " worker"
 	return command
 }
@@ -148,27 +161,29 @@ func buildWorkerCommand(program string, masterAddress string, stage *types.Pipel
 func (schedule *Schedule) EstablishWorkerCommunication() {
 	numPositions := schedule.StageList.Length()
 	for position := 1; position < numPositions; position++ {
-		nextWorker := schedule.StageList.FindByPosition(position)
-		currentWorker := schedule.StageList.FindByPosition(position - 1)
-		sendNextWorkerAddress(currentWorker, nextWorker)
+		for _, nextWorker := range schedule.StageList.FindByPosition(position).Workers {
+			for _, currentWorker := range schedule.StageList.FindByPosition(position - 1).Workers {
+				sendNextWorkerAddress(currentWorker, nextWorker)
+			}
+		}
 	}
 }
 
 // sendNextWorkerAddress sends the next worker's address to the given worker
-func sendNextWorkerAddress(currentWorker *types.PipelineStage, nextWorker *types.PipelineStage) {
+func sendNextWorkerAddress(currentWorker *types.Worker, nextWorker *types.Worker) {
 	message := new(types.Message)
 	message.Sender = "0"
 	message.Description = common.MsgAddNextStageAddr
-	message.Contents = nextWorker.NetAddress
-	fmt.Println("Setting up connection to:", currentWorker.NetAddress)
-	connection, err := net.Dial("tcp", currentWorker.NetAddress)
+	message.Contents = nextWorker.Address
+	fmt.Println("Setting up connection to:", currentWorker.Address)
+	connection, err := net.Dial("tcp", currentWorker.Address)
 	// defer connection.Close()
 	if err != nil {
 		panic(err)
 	}
 	encoder := gob.NewEncoder(connection)
 	encoder.Encode(message)
-	fmt.Println("Sent addr", nextWorker.NetAddress, "to:", currentWorker.NetAddress)
+	fmt.Println("Sent addr", nextWorker.Address, "to:", currentWorker.Address)
 }
 
 // Dynamic does dynamic scheduling of the pipeline stages on the available nodes, with the aim of increasing
@@ -176,12 +191,12 @@ func sendNextWorkerAddress(currentWorker *types.PipelineStage, nextWorker *types
 func (schedule *Schedule) Dynamic(program string, masterAddress string) {
 	for {
 		time.Sleep(1 * time.Second)
-		bottleneck := schedule.StageList.FindBottleneck()
+		bottleneck, numToScale := schedule.StageList.FindBottleneck()
 		if bottleneck == -1 {
 			fmt.Println("There is no bottleneck")
 		} else {
 			fmt.Println("Found a bottleneck at", bottleneck)
-			schedule.scaleStage(bottleneck, program, masterAddress)
+			schedule.scaleStage(bottleneck, numToScale, program, masterAddress)
 		}
 	}
 }

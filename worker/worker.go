@@ -42,7 +42,7 @@ func userHomeDir() string {
 // opens a log file in the user's home directory
 func openLogFile() (fp *os.File) {
 	userPath := userHomeDir()
-	filePath := userPath + "/gopipeline" + StageNumber + ".log"
+	filePath := userPath + "/gopipeline" + StageNumber + "." + StageID + ".log"
 	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		log.Fatal(err)
