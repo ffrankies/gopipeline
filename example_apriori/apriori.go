@@ -135,7 +135,7 @@ func Generate(arg interface{}) interface{} {
 	randomSource := rand.NewSource(time.Now().UnixNano())
 	randomGenerator := rand.New(randomSource)
 	setSize := 40
-	numSets := 100
+	numSets := 150
 	sets := new(SetList)
 	for i := 0; i < numSets; i++ {
 		set := NewSet()
@@ -147,7 +147,8 @@ func Generate(arg interface{}) interface{} {
 		}
 		sets.Add(set)
 	}
-	return Parameters{OriginalSet: sets, LenCurrentSetItems: 0, TargetNumSets: 100}
+	params := NextIteration(Parameters{OriginalSet: sets, LenCurrentSetItems: 0, TargetNumSets: 100})
+	return params
 }
 
 // NextIteration creates the next iteration of sets for the a-priori algorithm
