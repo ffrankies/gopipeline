@@ -94,6 +94,9 @@ func (stageList *PipelineStageList) FindBottleneck() (bottleneckPosition int, sc
 	bottleneckPosition = -1
 	bottleneckValue := -1.0
 	for position := 0; position <= stageList.MaxPosition; position++ {
+		if stageList.FindByPosition(position).Scaled == true {
+			continue
+		}
 		currentPositionExecutionTime := stageList.AverageExecutionTime(position)
 		nextPositionExecutionTime := float64(0.0)
 		previousPositionExecutionTime := float64(0.0)

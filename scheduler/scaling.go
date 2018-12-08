@@ -33,6 +33,7 @@ func (schedule *Schedule) scaleStage(position int, numToScale int, program strin
 		schedule.setUpNewWorkerCommunication(newWorker)
 		numScaled++
 	}
+	schedule.StageList.FindByPosition(position).Scaled = true
 	// TODO(): also scale on underutilized nodes
 }
 
