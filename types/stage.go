@@ -1,6 +1,7 @@
 package types
 
 import (
+	"math"
 	"strconv"
 )
 
@@ -43,9 +44,12 @@ func (stage *PipelineStage) MemoryRequirement() uint64 {
 	maxMemoryUsed := uint64(0)
 	for _, worker := range stage.Workers {
 		memoryUsed := worker.Stats.WorkerMemoryUsage
-		if memoryUsed > maxMemoryUsed {
+		if memoryUsed > maxMemoryUsed && worker.Stats.ExecutionTime > 0 {
 			maxMemoryUsed = memoryUsed
 		}
+	}
+	if maxMemoryUsed == uint64(0) {
+		return uint64(math.MaxUint64)
 	}
 	return maxMemoryUsed
 }
