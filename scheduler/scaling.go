@@ -20,10 +20,15 @@ func (schedule *Schedule) scaleStage(position int, numToScale int, program strin
 			return
 		}
 		// For now, only scale on free nodes
-		if schedule.freeNodeList.Length() < 1 {
-			return
+		var newWorker *types.Worker
+		if schedule.freeNodeList.Length() >= 1 {
+			newWorker = schedule.AssignWorkerToFreeNode(position)
+		} else {
+			newWorker = schedule.AssignWorkerToUnderutilizedNode(position)
+			if newWorker == nil {
+				return
+			}
 		}
-		newWorker := schedule.AssignWorkerToFreeNode(position)
 		schedule.startWorker(newWorker, program, masterAddress)
 		fmt.Println("Waiting for worker to send info...")
 		if err := schedule.waitForWorkerToSendInfo(newWorker); err != nil {
@@ -34,7 +39,6 @@ func (schedule *Schedule) scaleStage(position int, numToScale int, program strin
 		numScaled++
 	}
 	schedule.StageList.FindByPosition(position).Scaled = true
-	// TODO(): also scale on underutilized nodes
 }
 
 // waitForWorkerToSendInfo busy waits until the worker sends its info

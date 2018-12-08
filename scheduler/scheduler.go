@@ -66,7 +66,7 @@ func (schedule *Schedule) CalculateFunctionDensity(functionList []types.AnyFunc)
 	return int(density)
 }
 
-// AssignWorkerToFreeNode assigns a single pipeline stage to a single free node
+// AssignWorkerToFreeNode assigns a single worker process to a single free node
 func (schedule *Schedule) AssignWorkerToFreeNode(position int) *types.Worker {
 	if schedule.freeNodeList.Length() == 0 {
 		panic("FATAL ERROR: There are no free nodes to assign this stage to")
@@ -76,10 +76,21 @@ func (schedule *Schedule) AssignWorkerToFreeNode(position int) *types.Worker {
 	return worker
 }
 
-// AssignWorkerToNode assigns a single pipeline stage (function) to a single node
-func (schedule *Schedule) AssignWorkerToNode(functionIndex int, pipelineNode *types.PipelineNode) *types.Worker {
+// AssignWorkerToUnderutilizedNode assigns a worker to a used node with enough unused memory
+func (schedule *Schedule) AssignWorkerToUnderutilizedNode(position int) *types.Worker {
+	memoryRequirement := schedule.StageList.MemoryRequirement(position)
+	schedulingNode := schedule.NodeList.FindNodeWithEnoughMemory(memoryRequirement)
+	if schedulingNode == nil {
+		return nil
+	}
+	worker := schedule.AssignWorkerToNode(position, schedulingNode)
+	return worker
+}
+
+// AssignWorkerToNode assigns a single worker process to a single node
+func (schedule *Schedule) AssignWorkerToNode(position int, pipelineNode *types.PipelineNode) *types.Worker {
 	_, foundInList := schedule.NodeList.FindNode(pipelineNode.Address)
-	worker := schedule.StageList.AddWorker(pipelineNode.Address, functionIndex)
+	worker := schedule.StageList.AddWorker(pipelineNode.Address, position)
 	pipelineNode.AddWorker(worker)
 	if foundInList == false {
 		schedule.NodeList.AddNode(pipelineNode)
