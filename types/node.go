@@ -1,5 +1,7 @@
 package types
 
+import "math"
+
 // PipelineNode struct refers to a computational PipelineNode. A PipelineNode can be assigned multiple functions, or
 // pipeline stages.
 type PipelineNode struct {
@@ -19,4 +21,27 @@ func NewPipelineNode(address string, position int) *PipelineNode {
 // AddWorker adds a PipelineStage to the PipelineNode's workers list
 func (pipelineNode *PipelineNode) AddWorker(worker *Worker) {
 	pipelineNode.Workers = append(pipelineNode.Workers, worker)
+}
+
+// AvailableMemory finds the available memory on this node by finding the minimum AvailableMemory parameter on its
+// workers
+func (pipelineNode *PipelineNode) AvailableMemory() uint64 {
+	minAvailableMemory := uint64(math.MaxUint64)
+	for _, worker := range pipelineNode.Workers {
+		availableMemory := worker.Stats.NodeAvailableMemory
+		if availableMemory < minAvailableMemory {
+			minAvailableMemory = availableMemory
+		}
+	}
+	return minAvailableMemory
+}
+
+// HasEnoughMemory returns true if the node has enough available memory to contain a worker with the given memory
+// requirements
+func (pipelineNode *PipelineNode) HasEnoughMemory(requirement uint64) bool {
+	availableMemory := pipelineNode.AvailableMemory()
+	if availableMemory > requirement {
+		return true
+	}
+	return false
 }
