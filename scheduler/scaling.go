@@ -14,6 +14,7 @@ import (
 // scaleStage scales a Bottleneck stage out to a free node
 func (schedule *Schedule) scaleStage(position int, numToScale int, program string, masterAddress string) {
 	numScaled := 0
+	fmt.Println(numScaled, "|", numToScale)
 	for numScaled < numToScale {
 		if position == -1 {
 			return
