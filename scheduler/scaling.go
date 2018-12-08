@@ -31,6 +31,7 @@ func (schedule *Schedule) scaleStage(position int, numToScale int, program strin
 		}
 		fmt.Println("Done waiting for worker to send info...")
 		schedule.setUpNewWorkerCommunication(newStage)
+		numScaled++
 	}
 	// TODO(): also scale on underutilized nodes
 }
