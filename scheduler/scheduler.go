@@ -162,7 +162,13 @@ func (schedule *Schedule) EstablishWorkerCommunication() {
 	numPositions := schedule.StageList.Length()
 	for position := 1; position < numPositions; position++ {
 		for _, nextWorker := range schedule.StageList.FindByPosition(position).Workers {
+			if nextWorker.Exiting == true {
+				continue
+			}
 			for _, currentWorker := range schedule.StageList.FindByPosition(position - 1).Workers {
+				if currentWorker.Exiting == true {
+					continue
+				}
 				sendNextWorkerAddress(currentWorker, nextWorker)
 			}
 		}
