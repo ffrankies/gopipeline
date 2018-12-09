@@ -2,13 +2,9 @@ package worker
 
 import (
 	"encoding/gob"
-	"fmt"
-	"log"
 	"net"
 	"os"
-	"os/user"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/ffrankies/gopipeline/internal/common"
@@ -26,47 +22,6 @@ var WorkerStatistics = new(types.WorkerStats)
 
 // connections is the list of connections to the next nodes
 var connections = NewConnections()
-
-// logging mutex
-var logMutex = &sync.Mutex{}
-
-// userHomeDir returns the current user's home directory
-func userHomeDir() string {
-	usr, err := user.Current()
-	if err != nil {
-		panic(err)
-	}
-	return usr.HomeDir
-}
-
-// opens a log file in the user's home directory
-func openLogFile() (fp *os.File) {
-	userPath := userHomeDir()
-	filePath := userPath + "/gopipeline" + StageNumber + "." + StageID + ".log"
-	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return f
-}
-
-// logPrint prints a message to the log file
-func logPrint(message string) {
-	logMutex.Lock()
-	f := openLogFile()
-	defer f.Close()
-	log.SetOutput(f)
-	message = "Worker " + StageID + " | Stage " + StageNumber + ": " + message
-	log.Println(message)
-	logMutex.Unlock()
-}
-
-// logMessage prints a message to the console AND the log file
-func logMessage(message string) {
-	logPrint(message)
-	message = "Worker " + StageID + ": " + message
-	fmt.Println(message)
-}
 
 // sendInfoToMaster opens a connection to the master node, and sends the address of its listener and the pid of this
 // stage's worker process
@@ -111,6 +66,7 @@ func runStage(options *common.WorkerOptions, functionList []types.AnyFunc, liste
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc, registerType interface{}) {
 	StageID = options.StageID
 	StageNumber = strconv.Itoa(options.Position)
+	setupLogFile()
 	go trackStatsGoroutine(options.MasterAddress, options.StageID)
 
 	// Listens for both the master and any other connection
