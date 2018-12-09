@@ -14,7 +14,6 @@ import (
 // scaleStage scales a Bottleneck stage out to a free node
 func (schedule *Schedule) scaleStage(position int, numToScale int, program string, masterAddress string) {
 	numScaled := 0
-	fmt.Println(numScaled, "|", numToScale)
 	for numScaled < numToScale {
 		if position == -1 {
 			return
@@ -26,15 +25,14 @@ func (schedule *Schedule) scaleStage(position int, numToScale int, program strin
 		} else {
 			newWorker = schedule.AssignWorkerToUnderutilizedNode(position)
 			if newWorker == nil {
-				return
+				break
 			}
 		}
 		schedule.startWorker(newWorker, program, masterAddress)
-		fmt.Println("Waiting for worker to send info...")
 		if err := schedule.waitForWorkerToSendInfo(newWorker); err != nil {
 			panic(err)
 		}
-		fmt.Println("Done waiting for worker to send info...")
+		fmt.Println("Worker info has been updated")
 		schedule.setUpNewWorkerCommunication(newWorker)
 		numScaled++
 	}
@@ -46,14 +44,12 @@ func (schedule *Schedule) waitForWorkerToSendInfo(worker *types.Worker) error {
 	for worker.PID == -1 {
 		time.Sleep(10 * time.Millisecond)
 	}
-	fmt.Println("PID has been updated")
 	if worker.PID == -2 {
 		return errors.New("ERROR: Worker could not be started")
 	}
 	for worker.Address == "" {
 		time.Sleep(10 * time.Millisecond)
 	}
-	fmt.Println("NetAddress has been updated")
 	return nil
 }
 

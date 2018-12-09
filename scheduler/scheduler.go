@@ -199,7 +199,7 @@ func (schedule *Schedule) Dynamic(program string, masterAddress string) {
 		if bottleneck == -1 {
 			fmt.Println("There is no bottleneck")
 		} else {
-			fmt.Println("Found a bottleneck at", bottleneck)
+			fmt.Println("Found a bottleneck at", bottleneck, "with scale factor", numToScale)
 			schedule.scaleStage(bottleneck, numToScale, program, masterAddress)
 		}
 		schedule.moveStages(program, masterAddress)
