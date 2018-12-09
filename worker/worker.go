@@ -2,6 +2,7 @@ package worker
 
 import (
 	"encoding/gob"
+	"fmt"
 	"net"
 	"os"
 	"strconv"
@@ -62,10 +63,38 @@ func runStage(options *common.WorkerOptions, functionList []types.AnyFunc, liste
 	}
 }
 
+// sendStartMessageToMaster sends messages indicating complication of a run through the pipeline
+func sendStartMessageToMaster(masterAddress string) {
+	currentTime := time.Now().UnixNano()
+	message := new(types.Message)
+	message.Sender = StageID
+	message.Description = common.MsgStartFirstStage
+	message.Contents = strconv.FormatInt(currentTime, 10)
+	connectionToMaster, err := net.Dial("tcp", masterAddress)
+	defer connectionToMaster.Close()
+	if err != nil {
+		fmt.Println(err.Error())
+		panic(err)
+	}
+	encoder := gob.NewEncoder(connectionToMaster)
+	err = encoder.Encode(message)
+	if err != nil {
+		fmt.Println(err.Error())
+		panic(err)
+	}
+}
+
 // Run the worker routine
 func Run(options *common.WorkerOptions, functionList []types.AnyFunc, registerType interface{}) {
 	StageID = options.StageID
 	StageNumber = strconv.Itoa(options.Position)
+	if StageID == "1" || StageNumber == strconv.Itoa(len(functionList)-1) {
+		setupPerformanceLogFile()
+		if StageID == "1" {
+			sendStartMessageToMaster(options.MasterAddress)
+			logPerformance(common.PerfStartWorker)
+		}
+	}
 	setupLogFile()
 	go trackStatsGoroutine(options.MasterAddress, options.StageID)
 

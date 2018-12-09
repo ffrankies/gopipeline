@@ -67,11 +67,23 @@ func executeStage(functionList []types.AnyFunc, position int, stageID string, in
 }
 
 // executeOnly computes the result of the stage and logs the time at which the computation completed.
-func executeOnly(functionList []types.AnyFunc, position int, myID string, queue *Queue) {
+func executeOnly(functionList []types.AnyFunc, position int, myID string, inputQueue *Queue, outputQueue *Queue) {
 	for {
-		input := queue.Pop()
+		input := inputQueue.Pop()
+		logPerformance(common.PerfStartExec)
 		executeStage(functionList, position, myID, input)
-		currentTime := time.Now()
-		logPrint("Finished computation at time: " + strconv.FormatInt(currentTime.UnixNano(), 10))
+		message := finishedExecutionMessage()
+		outputQueue.Push(message)
+		logPerformance(common.PerfEndExec)
 	}
+}
+
+// finishedExecutionMessage creates a message indicating that execution has finished
+func finishedExecutionMessage() *types.Message {
+	currentTime := time.Now().UnixNano()
+	message := new(types.Message)
+	message.Sender = StageID
+	message.Description = common.MsgEndExecution
+	message.Contents = strconv.FormatInt(currentTime, 10)
+	return message
 }

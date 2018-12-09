@@ -12,7 +12,9 @@ import (
 var waitingForStartPipelineMessage = true
 
 // runFirstStage runs the function of a worker running the first stage
-func runFirstStage(listener net.Listener, functionList []types.AnyFunc, myID string, registerType interface{}, masterAddress string) {
+func runFirstStage(listener net.Listener, functionList []types.AnyFunc, myID string, registerType interface{},
+	masterAddress string) {
+
 	go receiveMessages(listener)
 	setUpSignalHandler(nil, nil, masterAddress)
 	for waitingForStartPipelineMessage {
