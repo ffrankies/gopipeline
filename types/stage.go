@@ -55,10 +55,10 @@ func (stage *PipelineStage) MemoryRequirement() uint64 {
 }
 
 // RemoveWorker removes the worker from the Workers list
-func (stage *PipelineStage) RemoveWorker(workerToRemove *Worker) {
+func (stage *PipelineStage) RemoveWorker(workerID string) {
 	var indexToRemove int
 	for index, worker := range stage.Workers {
-		if worker.ID == workerToRemove.ID {
+		if worker.ID == workerID {
 			indexToRemove = index
 		}
 	}

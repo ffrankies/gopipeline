@@ -27,9 +27,9 @@ func (nodeList *PipelineNodeList) FindNode(nodeAddress string) (pipelineNode *Pi
 }
 
 // RemoveWorker removes the worker from the correct stage
-func (nodeList *PipelineNodeList) RemoveWorker(worker *Worker) {
-	node := nodeList.FindNodeWithWorker(worker.ID)
-	node.RemoveWorker(worker)
+func (nodeList *PipelineNodeList) RemoveWorker(workerID string) {
+	node := nodeList.FindNodeWithWorker(workerID)
+	node.RemoveWorker(workerID)
 }
 
 // FindNodeWithWorker finds the stage that has a worker with the given ID

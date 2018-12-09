@@ -47,10 +47,10 @@ func (pipelineNode *PipelineNode) HasEnoughMemory(requirement uint64) bool {
 }
 
 // RemoveWorker removes the worker from the Workers list
-func (pipelineNode *PipelineNode) RemoveWorker(workerToRemove *Worker) {
+func (pipelineNode *PipelineNode) RemoveWorker(workerID string) {
 	var indexToRemove int
 	for index, worker := range pipelineNode.Workers {
-		if worker.ID == workerToRemove.ID {
+		if worker.ID == workerID {
 			indexToRemove = index
 		}
 	}
