@@ -14,9 +14,10 @@ func hello(num int) {
 func main() {
 	fmt.Println("Started execution at", strconv.FormatInt(time.Now().UnixNano(), 10))
 	for i := 0; i < 100; i++ {
-		for i := 0; i < 20; i++ {
+		for i := 0; i < 5; i++ {
 			hello(i)
 		}
+		fmt.Println("Finished execution of iteration", i+1)
 	}
 	fmt.Println("Finished execution at", strconv.FormatInt(time.Now().UnixNano(), 10))
 }
