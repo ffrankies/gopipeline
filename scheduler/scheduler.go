@@ -115,8 +115,7 @@ func (schedule *Schedule) UpdateStageInfo(message *types.Message) {
 	worker := schedule.StageList.FindWorker(message.Sender)
 	stageInfo, ok := (message.Contents).(types.MessageStageInfo)
 	if ok {
-		worker.Address = stageInfo.Address
-		worker.PID = stageInfo.PID
+		worker.UpdateInfo(stageInfo.Address, stageInfo.PID)
 	} else {
 		fmt.Println("ERROR: Could not convert message contents to MessageStageInfo")
 	}
