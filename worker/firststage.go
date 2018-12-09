@@ -50,6 +50,12 @@ func receiveMessages(listener net.Listener) {
 			logPrint("Received start pipeline message")
 			continue
 		}
+		if message.Description == common.MsgBreakConnection {
+			addressToRemove := (message.Contents).(string)
+			connections.RemoveConnection(addressToRemove)
+			logPrint("Removed the worker from the list of connections")
+			continue
+		}
 		logMessage("Received invalid message from " + message.Sender + " of type: " + strconv.Itoa(message.Description))
 		connection.Close()
 	}
