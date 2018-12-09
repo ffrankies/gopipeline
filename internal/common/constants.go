@@ -9,4 +9,13 @@ const (
 	MsgStartWorker      int = 4
 	MsgBreakConnection  int = 5
 	MsgNotifyExit       int = 6
+	MsgEndExecution     int = 7
+	MsgStartFirstStage  int = 8
+)
+
+// Performance log message types
+const (
+	PerfStartWorker string = "Worker_started         "
+	PerfStartExec   string = "Stage_execution_started"
+	PerfEndExec     string = "Stage_execution_ended  "
 )
