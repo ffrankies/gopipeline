@@ -11,12 +11,12 @@ import (
 
 // runIntermediateStage runs the function of a worker running an intermediate stage
 func runIntermediateStage(listener net.Listener, functionList []types.AnyFunc, myID string, position int,
-	registerType interface{}) {
+	registerType interface{}, masterAddress string) {
 
 	inputQueue := makeQueue()
 	outputQueue := makeQueue()
 	go executeAndSend(functionList, position, myID, inputQueue, outputQueue)
-	setUpSignalHandler(inputQueue, outputQueue)
+	setUpSignalHandler(inputQueue, outputQueue, masterAddress)
 	for {
 		logPrint("Waiting for connection from whoever")
 		listenerConnection, err := listener.Accept()

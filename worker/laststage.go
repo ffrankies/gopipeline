@@ -10,10 +10,10 @@ import (
 )
 
 // runLastStage runs the function of a worker running the last stage
-func runLastStage(listener net.Listener, functionList []types.AnyFunc, myID string, registerType interface{}) {
+func runLastStage(listener net.Listener, functionList []types.AnyFunc, myID string, registerType interface{}, masterAddress string) {
 	queue := makeQueue()
 	go executeOnly(functionList, len(functionList)-1, myID, queue)
-	setUpSignalHandler(nil, queue)
+	setUpSignalHandler(nil, queue, masterAddress)
 	for {
 		connectionFromPreviousWorker, err := listener.Accept()
 		if err != nil {
