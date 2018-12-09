@@ -43,5 +43,11 @@ func handleConnection(connection net.Conn, registerType interface{}, inputQueue 
 			connections.AddConnection(input.(string))
 			logPrint("Received new address from master")
 		}
+		if messageDesc == common.MsgBreakConnection {
+			addressToRemove := input.(string)
+			connections.RemoveConnection(addressToRemove)
+			logPrint("Removed the worker from the list of connections")
+			continue
+		}
 	}
 }
