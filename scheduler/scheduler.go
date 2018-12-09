@@ -197,7 +197,7 @@ func (schedule *Schedule) Dynamic(program string, masterAddress string) {
 		time.Sleep(1 * time.Second)
 		bottleneck, numToScale := schedule.StageList.FindBottleneck()
 		if bottleneck == -1 {
-			fmt.Println("There is no bottleneck")
+			// Do nothing
 		} else {
 			fmt.Println("Found a bottleneck at", bottleneck, "with scale factor", numToScale)
 			schedule.scaleStage(bottleneck, numToScale, program, masterAddress)
