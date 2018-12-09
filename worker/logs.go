@@ -5,19 +5,14 @@ import (
 	"log"
 	"os"
 	"os/user"
+	"strconv"
 	"sync"
+	"time"
 )
 
 // logging mutexes
 var logMutex = &sync.Mutex{}
 var performanceLogMutex = &sync.Mutex{}
-
-// Performance log message types
-const (
-	PerfStartWorker string = "Worker started"
-	PerfStartExec   string = "Stage execution started"
-	PerfEndExec     string = "Stage execution ended"
-)
 
 // setupLogFile sets up the log file for this worker
 func setupLogFile() {
@@ -111,10 +106,11 @@ func openPerformanceLogFile() (fp *os.File) {
 // logPerformance logs a performance message to file
 func logPerformance(performanceMessage string) {
 	performanceLogMutex.Lock()
-	f := openLogFile()
+	f := openPerformanceLogFile()
 	defer f.Close()
 	log.SetOutput(f)
-	message := performanceMessage + "," + StageID + "," + StageNumber + "," + performanceMessage
+	message := performanceMessage + " " + StageID + " " + StageNumber + " "
+	message += " " + strconv.FormatInt(time.Now().UnixNano(), 10)
 	log.Println(message)
 	performanceLogMutex.Unlock()
 }
