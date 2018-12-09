@@ -19,6 +19,9 @@ import (
 // NumExecutions is the number of times the pipeline has executed from start to finish
 var NumExecutions = 0
 
+// targetNumExecutions is the number of executions to wait for before killing the pipeline
+var targetNumExecutions int
+
 // NumExecutionsMutex is the mutex for changing NumExecutions
 var NumExecutionsMutex = &sync.Mutex{}
 
@@ -70,10 +73,10 @@ func handleConnectionFromWorker(schedule *scheduler.Schedule, connection net.Con
 	} else if message.Description == common.MsgEndExecution {
 		NumExecutionsMutex.Lock()
 		NumExecutions++
-		if NumExecutions == 1 || NumExecutions == 5 {
+		if NumExecutions == 1 || NumExecutions == targetNumExecutions {
 			logPrint(common.PerfEndExec + " " + (message.Contents).(string))
 		}
-		if NumExecutions == 5 {
+		if NumExecutions == targetNumExecutions {
 			NumExecutionsMutex.Unlock()
 			killAllWorkersAndExit(schedule, config)
 		} else {
@@ -130,6 +133,7 @@ func killAllWorkersAndExit(schedule *scheduler.Schedule, config *Config) {
 // Run executes the main logic of the "master" node.
 // This involves setting up the pipeline stages, and starting worker processes on each node in the pipeline.
 func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
+	targetNumExecutions = options.TargetNumExecutions
 	config := NewConfig(options.ConfigPath)
 	schedule := scheduler.NewSchedule(
 		config.NodeList, config.SSHUser, config.SSHPort, config.UserPath, len(functionList))
