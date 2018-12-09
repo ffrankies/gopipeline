@@ -7,4 +7,5 @@ const (
 	MsgStageResult      int = 2
 	MsgStageStats       int = 3
 	MsgStartWorker      int = 4
+	MsgBreakConnection  int = 5
 )
