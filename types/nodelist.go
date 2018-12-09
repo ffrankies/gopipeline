@@ -26,6 +26,24 @@ func (nodeList *PipelineNodeList) FindNode(nodeAddress string) (pipelineNode *Pi
 	return
 }
 
+// RemoveWorker removes the worker from the correct stage
+func (nodeList *PipelineNodeList) RemoveWorker(worker *Worker) {
+	node := nodeList.FindNodeWithWorker(worker.ID)
+	node.RemoveWorker(worker)
+}
+
+// FindNodeWithWorker finds the stage that has a worker with the given ID
+func (nodeList *PipelineNodeList) FindNodeWithWorker(id string) *PipelineNode {
+	for _, node := range nodeList.List {
+		for _, worker := range node.Workers {
+			if worker.ID == id {
+				return node
+			}
+		}
+	}
+	return nil
+}
+
 // FindNodeWithEnoughMemory finds a node with enough memory to satisfy the requirement of the given stage
 func (nodeList *PipelineNodeList) FindNodeWithEnoughMemory(requirement uint64) *PipelineNode {
 	for _, node := range nodeList.List {

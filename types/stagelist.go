@@ -39,6 +39,12 @@ func (stageList *PipelineStageList) Length() int {
 	return len(stageList.List)
 }
 
+// RemoveWorker removes the worker from the correct stage
+func (stageList *PipelineStageList) RemoveWorker(worker *Worker) {
+	stage := stageList.FindStageWithWorker(worker.ID)
+	stage.RemoveWorker(worker)
+}
+
 // FindStageWithWorker finds the stage that has a worker with the given ID
 func (stageList *PipelineStageList) FindStageWithWorker(id string) *PipelineStage {
 	for _, stage := range stageList.List {
