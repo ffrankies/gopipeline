@@ -1,4 +1,3 @@
-// A collection of functions common to gopipeline, gopipeline/master and gopipeline/worker
 package common
 
 import (

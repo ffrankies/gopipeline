@@ -4,8 +4,9 @@ import "flag"
 
 // MasterOptions contains the command-line options passed to the master process
 type MasterOptions struct {
-	Program    string // The program to run on the worker nodes
-	ConfigPath string // The path to the config file
+	Program             string // The program to run on the worker nodes
+	ConfigPath          string // The path to the config file
+	TargetNumExecutions int    // The number of executions to target
 }
 
 // NewMasterOptions parses the command-line flags for starting a new master process and stores them in an
@@ -14,6 +15,7 @@ func NewMasterOptions(program string) *MasterOptions {
 	options := new(MasterOptions)
 	options.Program = program
 	flag.StringVar(&options.ConfigPath, "config", "GoPipeline.config.yaml", "The path to a config file")
+	flag.IntVar(&options.TargetNumExecutions, "num", 100, "The number of executions to target")
 	flag.Parse()
 	return options
 }
