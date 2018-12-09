@@ -71,9 +71,9 @@ func handleConnectionFromWorker(schedule *scheduler.Schedule, connection net.Con
 	} else if message.Description == common.MsgStartFirstStage {
 		logPrint(common.PerfStartWorker + " " + (message.Contents).(string))
 	} else if message.Description == common.MsgEndExecution {
-		fmt.Println("Finished executing one iteration")
 		NumExecutionsMutex.Lock()
 		NumExecutions++
+		fmt.Println("Finished executing one iteration", NumExecutions)
 		if NumExecutions == 1 || NumExecutions == targetNumExecutions {
 			logPrint(common.PerfEndExec + " " + (message.Contents).(string))
 		}
