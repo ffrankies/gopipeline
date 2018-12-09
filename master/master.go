@@ -133,6 +133,7 @@ func killAllWorkersAndExit(schedule *scheduler.Schedule, config *Config) {
 // Run executes the main logic of the "master" node.
 // This involves setting up the pipeline stages, and starting worker processes on each node in the pipeline.
 func Run(options *common.MasterOptions, functionList []types.AnyFunc) {
+	setupLogFile()
 	targetNumExecutions = options.TargetNumExecutions
 	config := NewConfig(options.ConfigPath)
 	schedule := scheduler.NewSchedule(
