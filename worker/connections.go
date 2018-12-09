@@ -60,6 +60,13 @@ func (connections *Connections) RemoveConnection(address string) {
 	}
 }
 
+// CloseAll closes all the connections
+func (connections *Connections) CloseAll() {
+	for _, connection := range connections.Cons {
+		connection.Close()
+	}
+}
+
 // Connection maintains a connection to the next node
 type Connection struct {
 	Address string       // The address of the next node
