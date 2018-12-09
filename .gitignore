@@ -19,6 +19,12 @@ GoPipeline.config.yaml
 GoPipeline.config2.yaml
 GoPipeline.localconfig.yaml
 GoPipeline.distconfig.yaml
+GoPipeline.distconfig1.yaml
+GoPipeline.distconfig10.yaml
+GoPipeline.distconfig15.yaml
+GoPipeline.distconfig20.yaml
+GoPipeline.distconfig25.yaml
+GoPipeline.distconfig5.yaml
 
 # Ignore built commands
 runmaster
