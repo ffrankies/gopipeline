@@ -8,18 +8,24 @@ import (
 	"sync"
 )
 
-// logging mutex
+// logging mutexes
 var logMutex = &sync.Mutex{}
+var performanceLogMutex = &sync.Mutex{}
+
+// Performance log message types
+const (
+	PerfStartWorker string = "Worker started"
+	PerfStartExec   string = "Stage execution started"
+	PerfEndExec     string = "Stage execution ended"
+)
 
 // setupLogFile sets up the log file for this worker
 func setupLogFile() {
-	fmt.Println("Setting up filepath")
 	filePath := getLogFilePath()
 	// Create directory structure to filePath if it doesn't already exist
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		os.MkdirAll(filePath, os.ModePerm)
 	}
-	fmt.Println("Created log directory")
 	// Delete log file from previous run
 	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
 		os.Remove(filePath)
@@ -30,7 +36,7 @@ func setupLogFile() {
 // getLogFilePath returns the path to the log file
 func getLogFilePath() string {
 	userPath := userHomeDir()
-	filePath := userPath + "/gopipeline_logs/gopipeline" + StageNumber + "." + StageID + ".log"
+	filePath := userPath + "/gopipeline_logs/" + StageNumber + "." + StageID + ".log"
 	return filePath
 }
 
@@ -69,4 +75,46 @@ func logMessage(message string) {
 	logPrint(message)
 	message = "Worker " + StageID + ": " + message
 	fmt.Println(message)
+}
+
+// setupPerformanceLogFile sets up the performance logger
+func setupPerformanceLogFile() {
+	filePath := getPerformanceLogFilePath()
+	// Create directory structure to filePath if it doesn't already exist
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		os.MkdirAll(filePath, os.ModePerm)
+	}
+	fmt.Println("Created log directory")
+	// Delete log file from previous run
+	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
+		os.Remove(filePath)
+	}
+}
+
+// getPerformanceLogFilePath returns the path to the log file
+func getPerformanceLogFilePath() string {
+	userPath := userHomeDir()
+	filePath := userPath + "/gopipeline_logs/performance/" + StageNumber + "." + StageID + ".log"
+	return filePath
+}
+
+// openPerformanceLogFile opens the performance log file
+func openPerformanceLogFile() (fp *os.File) {
+	filePath := getPerformanceLogFilePath()
+	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return f
+}
+
+// logPerformance logs a performance message to file
+func logPerformance(performanceMessage string) {
+	performanceLogMutex.Lock()
+	f := openLogFile()
+	defer f.Close()
+	log.SetOutput(f)
+	message := performanceMessage + "," + StageID + "," + StageNumber + "," + performanceMessage
+	log.Println(message)
+	performanceLogMutex.Unlock()
 }
