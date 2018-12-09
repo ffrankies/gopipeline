@@ -13,6 +13,7 @@ import (
 func runLastStage(listener net.Listener, functionList []types.AnyFunc, myID string, registerType interface{}) {
 	queue := makeQueue()
 	go executeOnly(functionList, len(functionList)-1, myID, queue)
+	setUpSignalHandler(nil, queue)
 	for {
 		connectionFromPreviousWorker, err := listener.Accept()
 		if err != nil {

@@ -14,6 +14,7 @@ var waitingForStartPipelineMessage = true
 // runFirstStage runs the function of a worker running the first stage
 func runFirstStage(listener net.Listener, functionList []types.AnyFunc, myID string, registerType interface{}) {
 	go receiveMessages(listener)
+	setUpSignalHandler(nil, nil)
 	for waitingForStartPipelineMessage {
 		// Busy wait lol
 	}

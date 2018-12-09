@@ -16,6 +16,7 @@ func runIntermediateStage(listener net.Listener, functionList []types.AnyFunc, m
 	inputQueue := makeQueue()
 	outputQueue := makeQueue()
 	go executeAndSend(functionList, position, myID, inputQueue, outputQueue)
+	setUpSignalHandler(inputQueue, outputQueue)
 	for {
 		logPrint("Waiting for connection from whoever")
 		listenerConnection, err := listener.Accept()
