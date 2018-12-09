@@ -59,12 +59,14 @@ func (schedule *Schedule) flushAndStopWorker(worker *types.Worker) {
 // moveStages moves the data for processing from the current node to the previous node if it
 // has memory available for usage
 func (schedule *Schedule) moveStages(program string, masterAddress string) {
+	fmt.Println("Consolidating workers")
 	for _, node := range schedule.NodeList.List {
 		availableMemory := node.AvailableMemory()
 		worker := schedule.findWorkerToMove(node.Position, availableMemory)
 		if worker == nil {
 			continue
 		}
+		fmt.Println("Moving worker " + worker.ID + " to node " + node.Address)
 		newWorker := schedule.AssignWorkerToNode(worker.Stage, node)
 		schedule.startWorker(newWorker, program, masterAddress)
 		fmt.Println("Waiting for the new worker to send info...")
