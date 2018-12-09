@@ -43,6 +43,23 @@ func (connections *Connections) Select() *gob.Encoder {
 	return encoder
 }
 
+// RemoveConnection closes the connection to the address of the worker given and removes the connection from the connection list.
+func (connections *Connections) RemoveConnection(address string) {
+	var indexToRemove int
+	for index, connection := range connections.Cons {
+		if connection.Address == address {
+			connection.Close()
+			indexToRemove = index
+			break
+		}
+	}
+	if indexToRemove == len(connections.Cons) {
+		connections.Cons = connections.Cons[:indexToRemove]
+	} else {
+		connections.Cons = append(connections.Cons[:indexToRemove], connections.Cons[indexToRemove+1:]...)
+	}
+}
+
 // Connection maintains a connection to the next node
 type Connection struct {
 	Address string       // The address of the next node
