@@ -67,6 +67,9 @@ func (q *Queue) GetLength() int {
 
 // WaitUntilEmpty uses a blocking channel to wait until the queue is empty
 func (q *Queue) WaitUntilEmpty() {
+	if q.GetLength() == 0 {
+		return
+	}
 	q.emptyChannel = make(chan int, 1)
 	<-q.emptyChannel
 	q.emptyChannel = nil
