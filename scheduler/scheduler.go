@@ -198,35 +198,6 @@ func (schedule *Schedule) Dynamic(program string, masterAddress string) {
 			fmt.Println("Found a bottleneck at", bottleneck)
 			schedule.scaleStage(bottleneck, numToScale, program, masterAddress)
 		}
-	}
-}
-
-//checkMemory finds the memory available in the current node and the previous one
-func checkMemory(schedule *Schedule, previousWorker *types.PipelineStage, currentWorker *types.PipelineStage) bool {
-	if currentWorker.Stats.WorkerMemoryUsage <= previousWorker.Stats.NodeAvailableMemory {
-		return true
-	}
-	return false
-}
-
-// moveStages moves the data for processing from the current node to the previous node if it
-// has memory available for usage
-func (schedule *Schedule) moveStages(program string, masterAddress string) {
-
-	for {
-		time.Sleep(1 * time.Second)
-		for position := 1; position < schedule.StageList.Length(); position++ {
-			currentWorker := schedule.StageList.FindByPosition(position)
-			previousWorker := schedule.StageList.FindByPosition(position - 1)
-			check := checkMemory(schedule, previousWorker, currentWorker)
-			if check {
-				//Set up a new node on the previous worker
-				schedule.startStage(previousWorker, program, masterAddress)
-				//Kill the node on the current worker
-				sshConnection := types.NewSSHConnection(currentWorker.Host, schedule.sshUser, schedule.sshPort)
-				command := "kill " + strconv.Itoa(currentWorker.PID)
-				sshConnection.RunCommand(command, nil, nil)
-			}
-		}
+		schedule.moveStages(program, masterAddress)
 	}
 }
