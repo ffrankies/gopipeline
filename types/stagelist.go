@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"strconv"
 	"sync"
 )
@@ -87,9 +88,9 @@ func (stageList *PipelineStageList) WaitUntilAllListenerPortsUpdated() {
 		allUpdated = true
 		for _, stage := range stageList.List {
 			for _, worker := range stage.Workers {
-				if worker.PID != -2 && (worker.Address == "" || worker.PID == -1) {
-					allUpdated = false
-				}
+				fmt.Println("Waiting for worker to get updated", worker.ID)
+				worker.WaitUntilUpdated()
+				fmt.Println("Worker updated!", worker.ID)
 			}
 		}
 	}
