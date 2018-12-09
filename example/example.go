@@ -11,7 +11,7 @@ import (
 )
 
 func hello(arg interface{}) interface{} {
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Second)
 	if arg != nil {
 		num := arg.(int)
 		fmt.Println("Hello World from Position: " + strconv.Itoa(num))
