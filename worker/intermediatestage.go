@@ -11,11 +11,12 @@ import (
 
 // runIntermediateStage runs the function of a worker running an intermediate stage
 func runIntermediateStage(listener net.Listener, functionList []types.AnyFunc, myID string, position int,
-	registerType interface{}) {
+	registerType interface{}, masterAddress string) {
 
 	inputQueue := makeQueue()
 	outputQueue := makeQueue()
 	go executeAndSend(functionList, position, myID, inputQueue, outputQueue)
+	setUpSignalHandler(inputQueue, outputQueue, masterAddress)
 	for {
 		logPrint("Waiting for connection from whoever")
 		listenerConnection, err := listener.Accept()
@@ -42,6 +43,12 @@ func handleConnection(connection net.Conn, registerType interface{}, inputQueue 
 		if messageDesc == common.MsgAddNextStageAddr {
 			connections.AddConnection(input.(string))
 			logPrint("Received new address from master")
+		}
+		if messageDesc == common.MsgBreakConnection {
+			addressToRemove := input.(string)
+			connections.RemoveConnection(addressToRemove)
+			logPrint("Removed the worker from the list of connections")
+			continue
 		}
 	}
 }

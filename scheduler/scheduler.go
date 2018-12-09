@@ -162,7 +162,13 @@ func (schedule *Schedule) EstablishWorkerCommunication() {
 	numPositions := schedule.StageList.Length()
 	for position := 1; position < numPositions; position++ {
 		for _, nextWorker := range schedule.StageList.FindByPosition(position).Workers {
+			if nextWorker.Exiting == true {
+				continue
+			}
 			for _, currentWorker := range schedule.StageList.FindByPosition(position - 1).Workers {
+				if currentWorker.Exiting == true {
+					continue
+				}
 				sendNextWorkerAddress(currentWorker, nextWorker)
 			}
 		}
@@ -175,7 +181,6 @@ func sendNextWorkerAddress(currentWorker *types.Worker, nextWorker *types.Worker
 	message.Sender = "0"
 	message.Description = common.MsgAddNextStageAddr
 	message.Contents = nextWorker.Address
-	fmt.Println("Setting up connection to:", currentWorker.Address)
 	connection, err := net.Dial("tcp", currentWorker.Address)
 	// defer connection.Close()
 	if err != nil {
@@ -183,7 +188,6 @@ func sendNextWorkerAddress(currentWorker *types.Worker, nextWorker *types.Worker
 	}
 	encoder := gob.NewEncoder(connection)
 	encoder.Encode(message)
-	fmt.Println("Sent addr", nextWorker.Address, "to:", currentWorker.Address)
 }
 
 // Dynamic does dynamic scheduling of the pipeline stages on the available nodes, with the aim of increasing
@@ -198,5 +202,6 @@ func (schedule *Schedule) Dynamic(program string, masterAddress string) {
 			fmt.Println("Found a bottleneck at", bottleneck)
 			schedule.scaleStage(bottleneck, numToScale, program, masterAddress)
 		}
+		schedule.moveStages(program, masterAddress)
 	}
 }

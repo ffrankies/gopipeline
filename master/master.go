@@ -54,6 +54,10 @@ func handleConnectionFromWorker(schedule *scheduler.Schedule, connection net.Con
 		schedule.UpdateStageInfo(message)
 	} else if message.Description == common.MsgStageStats {
 		schedule.UpdateStageStats(message)
+	} else if message.Description == common.MsgNotifyExit {
+		exitingWorkerID := message.Sender
+		schedule.StageList.RemoveWorker(exitingWorkerID)
+		schedule.NodeList.RemoveWorker(exitingWorkerID)
 	} else {
 		fmt.Println("Received invalid message type from", message.Sender)
 	}

@@ -12,8 +12,9 @@ import (
 var waitingForStartPipelineMessage = true
 
 // runFirstStage runs the function of a worker running the first stage
-func runFirstStage(listener net.Listener, functionList []types.AnyFunc, myID string, registerType interface{}) {
+func runFirstStage(listener net.Listener, functionList []types.AnyFunc, myID string, registerType interface{}, masterAddress string) {
 	go receiveMessages(listener)
+	setUpSignalHandler(nil, nil, masterAddress)
 	for waitingForStartPipelineMessage {
 		// Busy wait lol
 	}
@@ -48,6 +49,12 @@ func receiveMessages(listener net.Listener) {
 		if message.Description == common.MsgStartWorker {
 			waitingForStartPipelineMessage = false
 			logPrint("Received start pipeline message")
+			continue
+		}
+		if message.Description == common.MsgBreakConnection {
+			addressToRemove := (message.Contents).(string)
+			connections.RemoveConnection(addressToRemove)
+			logPrint("Removed the worker from the list of connections")
 			continue
 		}
 		logMessage("Received invalid message from " + message.Sender + " of type: " + strconv.Itoa(message.Description))

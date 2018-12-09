@@ -99,11 +99,11 @@ func runStage(options *common.WorkerOptions, functionList []types.AnyFunc, liste
 	logPrint("My position is " + strconv.Itoa(options.Position))
 	if options.Position == 0 {
 		// waitForStartCommand(listener)
-		runFirstStage(listener, functionList, options.StageID, registerType)
+		runFirstStage(listener, functionList, options.StageID, registerType, options.MasterAddress)
 	} else if isLastStage {
-		runLastStage(listener, functionList, options.StageID, registerType)
+		runLastStage(listener, functionList, options.StageID, registerType, options.MasterAddress)
 	} else {
-		runIntermediateStage(listener, functionList, options.StageID, options.Position, registerType)
+		runIntermediateStage(listener, functionList, options.StageID, options.Position, registerType, options.MasterAddress)
 	}
 }
 

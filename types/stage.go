@@ -54,6 +54,21 @@ func (stage *PipelineStage) MemoryRequirement() uint64 {
 	return maxMemoryUsed
 }
 
+// RemoveWorker removes the worker from the Workers list
+func (stage *PipelineStage) RemoveWorker(workerID string) {
+	var indexToRemove int
+	for index, worker := range stage.Workers {
+		if worker.ID == workerID {
+			indexToRemove = index
+		}
+	}
+	if indexToRemove == len(stage.Workers) {
+		stage.Workers = stage.Workers[:indexToRemove]
+	} else {
+		stage.Workers = append(stage.Workers[:indexToRemove], stage.Workers[indexToRemove+1:]...)
+	}
+}
+
 // String converts the PipelineStage struct into a String
 func (stage *PipelineStage) String() string {
 	pipelineStageString := "PipelineStage {\n"
