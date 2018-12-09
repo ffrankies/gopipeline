@@ -36,7 +36,6 @@ func (schedule *Schedule) breakConnection(oldWorkerAddress string, position int)
 	message.Contents = oldWorkerAddress
 	previousStage := schedule.StageList.FindByPosition(position - 1)
 	for _, worker := range previousStage.Workers {
-		fmt.Println("Setting up connection to:", worker.Address)
 		connection, err := net.Dial("tcp", worker.Address)
 		if err != nil {
 			panic(err)
@@ -44,7 +43,6 @@ func (schedule *Schedule) breakConnection(oldWorkerAddress string, position int)
 		encoder := gob.NewEncoder(connection)
 		encoder.Encode(message)
 		connection.Close()
-		fmt.Println("Closed connection between " + worker.ID + " and " + oldWorkerAddress)
 	}
 }
 
@@ -59,7 +57,6 @@ func (schedule *Schedule) flushAndStopWorker(worker *types.Worker) {
 // moveStages moves the data for processing from the current node to the previous node if it
 // has memory available for usage
 func (schedule *Schedule) moveStages(program string, masterAddress string) {
-	fmt.Println("Consolidating workers")
 	for _, node := range schedule.NodeList.List {
 		availableMemory := node.AvailableMemory()
 		worker := schedule.findWorkerToMove(node.Position, availableMemory)
@@ -69,11 +66,9 @@ func (schedule *Schedule) moveStages(program string, masterAddress string) {
 		fmt.Println("Moving worker " + worker.ID + " to node " + node.Address)
 		newWorker := schedule.AssignWorkerToNode(worker.Stage, node)
 		schedule.startWorker(newWorker, program, masterAddress)
-		fmt.Println("Waiting for the new worker to send info...")
 		if err := schedule.waitForWorkerToSendInfo(newWorker); err != nil {
 			panic(err)
 		}
-		fmt.Println("Done waiting for worker to send info...")
 		schedule.setUpNewWorkerCommunication(newWorker)
 		schedule.breakConnection(worker.Address, worker.Stage)
 		schedule.flushAndStopWorker(worker)

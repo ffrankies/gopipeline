@@ -181,7 +181,6 @@ func sendNextWorkerAddress(currentWorker *types.Worker, nextWorker *types.Worker
 	message.Sender = "0"
 	message.Description = common.MsgAddNextStageAddr
 	message.Contents = nextWorker.Address
-	fmt.Println("Setting up connection to:", currentWorker.Address)
 	connection, err := net.Dial("tcp", currentWorker.Address)
 	// defer connection.Close()
 	if err != nil {
@@ -189,7 +188,6 @@ func sendNextWorkerAddress(currentWorker *types.Worker, nextWorker *types.Worker
 	}
 	encoder := gob.NewEncoder(connection)
 	encoder.Encode(message)
-	fmt.Println("Sent addr", nextWorker.Address, "to:", currentWorker.Address)
 }
 
 // Dynamic does dynamic scheduling of the pipeline stages on the available nodes, with the aim of increasing
