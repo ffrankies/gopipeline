@@ -16,7 +16,7 @@ func (schedule *Schedule) findWorkerToMove(position int, availableMemory uint64)
 	for _, node := range schedule.NodeList.List {
 		if position < node.Position {
 			for _, worker := range node.Workers {
-				if worker.Stats.WorkerMemoryUsage < availableMemory && worker.Stats.ExecutionTime > 0 {
+				if worker.Stats.WorkerMemoryUsage < availableMemory && worker.Stats.ExecutionTime > 0 && worker.Exiting == false {
 					return worker
 				}
 			}
@@ -63,6 +63,7 @@ func (schedule *Schedule) moveStages(program string, masterAddress string) {
 		if worker == nil {
 			continue
 		}
+		worker.Exiting = true
 		fmt.Println("Moving worker " + worker.ID + " to node " + node.Address)
 		newWorker := schedule.AssignWorkerToNode(worker.Stage, node)
 		schedule.startWorker(newWorker, program, masterAddress)
