@@ -24,7 +24,7 @@ func hello(arg interface{}) interface{} {
 
 func main() {
 	functionList := make([]types.AnyFunc, 0)
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 20; i++ {
 		functionList = append(functionList, hello)
 	}
 	gopipeline.Run(functionList, 1)
